@@ -33,3 +33,7 @@
 
 # DS-store (for mac)
 *.DS_Store
+
+# Vs-code stuff
+project1/.vscode
+project1/Makefile

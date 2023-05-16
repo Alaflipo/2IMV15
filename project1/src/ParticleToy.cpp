@@ -40,6 +40,7 @@ static SpringForce * delete_this_dummy_spring = NULL;
 static RodConstraint * delete_this_dummy_rod = NULL;
 static CircularWireConstraint * delete_this_dummy_wire = NULL;
 
+static std::vector<SpringForce *> springForces;
 
 /*
 ----------------------------------------------------------------------
@@ -62,6 +63,7 @@ static void free_data ( void )
 		delete delete_this_dummy_wire;
 		delete_this_dummy_wire = NULL;
 	}
+	springForces.clear();
 }
 
 static void clear_data ( void )
@@ -91,6 +93,11 @@ static void init_system(void)
 	delete_this_dummy_spring = new SpringForce(pVector[0], pVector[1], dist, 1.0, 1.0);
 	delete_this_dummy_rod = new RodConstraint(pVector[1], pVector[2], dist);
 	delete_this_dummy_wire = new CircularWireConstraint(pVector[0], center, dist);
+
+	springForces.push_back(new SpringForce(pVector[0], pVector[1], dist, 1.0, 1.0));
+	for (auto springForce: springForces) {
+		springForce->calculateForce();
+	}
 }
 
 /*
@@ -148,8 +155,12 @@ static void draw_particles ( void )
 static void draw_forces ( void )
 {
 	// change this to iteration over full set
-	if (delete_this_dummy_spring)
-		delete_this_dummy_spring->draw();
+	// if (delete_this_dummy_spring)
+	// 	delete_this_dummy_spring->draw();
+
+	for (SpringForce * springForce: springForces) {
+		springForce->draw();
+	}
 }
 
 static void draw_constraints ( void )
@@ -266,9 +277,21 @@ static void reshape_func ( int width, int height )
 	win_y = height;
 }
 
+static void derivEval() {
+	for (Particle * particle: pVector) {
+		particle->clearForce();
+	}
+
+	for (SpringForce * springForce: springForces) {
+		springForce->calculateForce();
+	}
+
+	simulation_step( pVector, dt );
+}
+
 static void idle_func ( void )
 {
-	if ( dsim ) simulation_step( pVector, dt );
+	if ( dsim ) derivEval();
 	else        {get_from_UI();remap_GUI();}
 
 	glutSetWindow ( win_id );

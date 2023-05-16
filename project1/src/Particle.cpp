@@ -14,6 +14,7 @@ void Particle::reset()
 {
 	m_Position = m_ConstructPos;
 	m_Velocity = Vec2f(0.0, 0.0);
+	m_force = Vec2f(0.0, 0.0);
 }
 void Particle::draw()
 {
@@ -25,4 +26,7 @@ void Particle::draw()
 	glVertex2f(m_Position[0]+h/2.0, m_Position[1]+h/2.0);
 	glVertex2f(m_Position[0]-h/2.0, m_Position[1]+h/2.0);
 	glEnd();
+}
+void Particle::clearForce() {
+	m_force = Vec2f(0.0, 0.0);
 }

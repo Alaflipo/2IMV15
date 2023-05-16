@@ -1,0 +1,14 @@
+{
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "/Users/morrisboers/Documents/2IMV15/project1/bin",
+            "binaryPath": "/Users/morrisboers/Documents/2IMV15/project1/bin/project1.exe",
+            "binaryArgs": []
+        },
+        {
+            "cwd": "/Users/morrisboers/Documents/2IMV15/project1/bin",
+            "binaryPath": "/Users/morrisboers/Documents/2IMV15/project1/bin/project1.out",
+            "binaryArgs": []
+        }
+    ]
+}

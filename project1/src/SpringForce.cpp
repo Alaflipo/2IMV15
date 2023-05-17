@@ -35,8 +35,8 @@ void SpringForce::calculateForce()
   // std::cout << "fp1: " << fp1[0] << ", " << fp1[1] << std::endl;
   // std::cout << "fp2: " << fp2[0] << ", " << fp2[1] << std::endl;
   // std::cout << "particle 2 force: " << m_p2->m_force[0] << ", " << m_p2->m_force[1] << std::endl;
-  m_p1->m_force += fp1;
-  m_p2->m_force += fp2;
+  m_p1->m_Force_acc += fp1;
+  m_p2->m_Force_acc += fp2;
   // std::cout << "particle 2 force: " << m_p2->m_force[0] << ", " << m_p2->m_force[1] << std::endl;
 
 }

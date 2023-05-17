@@ -4,6 +4,7 @@
 #include "Particle.h"
 #include "SpringForce.h"
 #include "RodConstraint.h"
+#include "GravityForce.h"
 #include "CircularWireConstraint.h"
 #include "imageio.h"
 
@@ -37,6 +38,7 @@ static int omx, omy, mx, my;
 static int hmx, hmy;
 
 static SpringForce * delete_this_dummy_spring = NULL;
+static GravityForce * gravity_force = NULL; 
 static RodConstraint * delete_this_dummy_rod = NULL;
 static CircularWireConstraint * delete_this_dummy_wire = NULL;
 
@@ -64,6 +66,10 @@ static void free_data ( void )
 		delete_this_dummy_wire = NULL;
 	}
 	springForces.clear();
+    if (gravity_force) {
+		delete gravity_force;
+		gravity_force = NULL;
+	}
 }
 
 static void clear_data ( void )
@@ -98,6 +104,7 @@ static void init_system(void)
 	for (auto springForce: springForces) {
 		springForce->calculateForce();
 	}
+    gravity_force = new GravityForce(pVector); 
 }
 
 /*
@@ -285,14 +292,20 @@ static void derivEval() {
 	for (SpringForce * springForce: springForces) {
 		springForce->calculateForce();
 	}
+    
+    gravity_force->update_gravity(); 
 
 	simulation_step( pVector, dt );
 }
 
 static void idle_func ( void )
 {
-	if ( dsim ) derivEval();
-	else        {get_from_UI();remap_GUI();}
+	if ( dsim ) {
+        simulation_step( pVector, dt );
+        derivEval();
+    } else {
+        get_from_UI();remap_GUI();
+    }
 
 	glutSetWindow ( win_id );
 	glutPostRedisplay ();

@@ -7,7 +7,7 @@ class GravityForce {
     public:
         GravityForce(std::vector<Particle*> pVector);
         virtual ~GravityForce(void);
-        void update_gravity();
+        void calculateGravityForce();
 
     private:
         std::vector<Particle*> const m_pVec;

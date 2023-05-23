@@ -342,8 +342,8 @@ static void derivEval() {
 	constraintSolver->calculateConstraintForce();
     
     
-	// Run a step in the simulation
-	simulation_step( pVector, dt, 1);
+	// Run a step in the simulation 0 = Euler, 1 = Midpoint, 2 = Runge-Kutta
+	simulation_step( pVector, dt, 2);
 }
 
 static void idle_func ( void )

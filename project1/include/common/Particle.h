@@ -14,6 +14,7 @@ public:
     std::vector<Vec2f> get_state();
     void set_state(Vec2f position, Vec2f velocity); 
     Vec2f get_acceleration();
+	std::vector<Vec2f> derivEval();
 
 	void draw();
 	void clearForce();

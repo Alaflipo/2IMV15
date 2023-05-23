@@ -16,7 +16,7 @@
 /* macros */
 
 /* external definitions (from solver) */
-extern void simulation_step( std::vector<Particle*> pVector, float dt );
+extern void simulation_step(std::vector<Particle*> pVector, float dt, int scheme);
 
 /* global variables */
 
@@ -343,7 +343,7 @@ static void derivEval() {
     
     
 	// Run a step in the simulation
-	simulation_step( pVector, dt );
+	simulation_step( pVector, dt, 1);
 }
 
 static void idle_func ( void )
@@ -417,7 +417,7 @@ int main ( int argc, char ** argv )
 
 	if ( argc == 1 ) {
 		N = 64;
-		dt = 0.05f;		// Simulation speed
+		dt = 0.1f;		// Simulation speed, default = 0.1
 		d = 5.f;
 		fprintf ( stderr, "Using defaults : N=%d dt=%g d=%g\n",
 			N, dt, d );

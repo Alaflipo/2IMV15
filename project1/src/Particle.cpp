@@ -33,6 +33,10 @@ Vec2f Particle::get_acceleration() {
     return m_Force_acc / m_Mass;
 }
 
+std::vector<Vec2f> Particle::derivEval() {
+    return {m_Velocity, get_acceleration()};
+}
+
 void Particle::draw()
 {
 	const double h = 0.03;
@@ -44,6 +48,7 @@ void Particle::draw()
 	glVertex2f(m_Position[0]-h/2.0, m_Position[1]+h/2.0);
 	glEnd();
 }
+
 void Particle::clearForce() {
 	m_Force_acc = Vec2f(0.0, 0.0);
 }

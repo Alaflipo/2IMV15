@@ -16,6 +16,7 @@ public:
     Vec2f get_acceleration();
 
 	void draw();
+	void visualize();
 	void clearForce();
 
 	Vec2f m_ConstructPos;
@@ -23,4 +24,5 @@ public:
 	Vec2f m_Velocity;
     float m_Mass;
 	Vec2f m_Force_acc;
+	Vec2f m_ForceArrow;
 };

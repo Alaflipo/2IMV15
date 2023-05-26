@@ -37,6 +37,11 @@ static int mouse_shiftclick[3];
 static int omx, omy, mx, my;
 static int hmx, hmy;
 
+// Whether a particle is currently created by the mouse press
+static bool activeMouseParticle;
+// Whether forces are being visualized
+static bool visualizeForces;
+
 static SpringForce * delete_this_dummy_spring = NULL;
 static GravityForce * gravity_force = NULL; 
 static RodConstraint * delete_this_dummy_rod = NULL;
@@ -179,6 +184,16 @@ static void draw_constraints ( void )
 		delete_this_dummy_wire->draw();
 }
 
+static void visualize_forces ( void )
+{
+	int size = pVector.size();
+
+	for(int ii=0; ii< size; ii++)
+	{
+		pVector[ii]->visualize();
+	}
+}
+
 /*
 ----------------------------------------------------------------------
 relates mouse movements to particle toy construction
@@ -252,6 +267,11 @@ static void key_func ( unsigned char key, int x, int y )
 		exit ( 0 );
 		break;
 
+	case 'v':
+	case 'V':
+		visualizeForces = !visualizeForces;
+		break;
+
 	case ' ':
 		dsim = !dsim;
 		break;
@@ -318,6 +338,9 @@ static void display_func ( void )
 	draw_forces();
 	draw_constraints();
 	draw_particles();
+	if (visualizeForces) {
+		visualize_forces();
+	}
 
 	post_display ();
 }
@@ -382,6 +405,7 @@ int main ( int argc, char ** argv )
 	printf ( "\n\nHow to use this application:\n\n" );
 	printf ( "\t Toggle construction/simulation display with the spacebar key\n" );
 	printf ( "\t Dump frames by pressing the 'd' key\n" );
+	printf ( "\t Toggle force visualization by pressing the 'v' key\n" );
 	printf ( "\t Quit by pressing the 'q' key\n" );
 
 	dsim = 0;

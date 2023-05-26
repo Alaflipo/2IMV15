@@ -37,10 +37,9 @@ static int mouse_shiftclick[3];
 static int omx, omy, mx, my;
 static int hmx, hmy;
 
-static GravityForce * gravity_force; 
-static GravityForce * gravity_force = NULL; 
-static RodConstraint * delete_this_dummy_rod = NULL;
-static CircularWireConstraint * delete_this_dummy_wire = NULL;
+static bool activeMouseParticle;
+
+static GravityForce * gravity_force;
 
 static std::vector<SpringForce *> springForces;
 static std::vector<CircularWireConstraint *> circularWireConstraints;
@@ -58,18 +57,6 @@ free/clear/allocate simulation data
 static void free_data ( void )
 {
 	pVector.clear();
-	if (delete_this_dummy_rod) {
-		delete delete_this_dummy_rod;
-		delete_this_dummy_rod = NULL;
-	}
-	if (delete_this_dummy_spring) {
-		delete delete_this_dummy_spring;
-		delete_this_dummy_spring = NULL;
-	}
-	if (delete_this_dummy_wire) {
-		delete delete_this_dummy_wire;
-		delete_this_dummy_wire = NULL;
-	}
 
 
 	springForces.clear();
@@ -101,8 +88,6 @@ static void init_system(void)
 		const double dist = 0.2;
 		const Vec2f center(0.0, 0.0);
 		const Vec2f offset(dist, 0.0);
-	const Vec2f tanki(0.0, dist*2);
-	const Vec2f tanki2(dist*2, dist *2);
 
 	// Create three particles, attach them to each other, then add a
 	// circular wire constraint to the first.
@@ -257,17 +242,28 @@ static void get_from_UI ()
 	int i, j;
 	// int size, flag;
 	int hi, hj;
-	// float x, y;
+	float x, y;
 	if ( !mouse_down[0] && !mouse_down[2] && !mouse_release[0] 
 	&& !mouse_shiftclick[0] && !mouse_shiftclick[2] ) return;
 
 	i = (int)((       mx /(float)win_x)*N);
 	j = (int)(((win_y-my)/(float)win_y)*N);
 
+
 	if ( i<1 || i>N || j<1 || j>N ) return;
 
-	if ( mouse_down[0] ) {
+	x = (float) 2 * i / N - 1;
+    y = (float) 2 * j / N - 1;
 
+	if ( mouse_down[0] ) {
+		Vec2f position(x, y);
+		if (!activeMouseParticle) {
+			activeMouseParticle = true;
+			pVector.push_back(new Particle(position));
+			springForces.push_back(new SpringForce(pVector[pVector.size() - 1], pVector[0], 0.1 , 50.0, 1.0));
+		} else {
+			pVector[pVector.size() - 1]->m_Position = position;
+		}
 	}
 
 	if ( mouse_down[2] ) {
@@ -276,7 +272,14 @@ static void get_from_UI ()
 	hi = (int)((       hmx /(float)win_x)*N);
 	hj = (int)(((win_y-hmy)/(float)win_y)*N);
 
+	
 	if( mouse_release[0] ) {
+		if (activeMouseParticle) {
+			activeMouseParticle = false;
+			pVector.pop_back();
+			springForces.pop_back();
+		}
+		mouse_release[0] = false;
 	}
 
 	omx = mx;
@@ -380,7 +383,7 @@ static void idle_func ( void )
 {
 	if ( dsim ) {
         // simulation_step( pVector, dt );
-        derivEval();
+        get_from_UI();derivEval();
     } else {
         get_from_UI();remap_GUI();
     }

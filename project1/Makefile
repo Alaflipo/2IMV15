@@ -12,7 +12,7 @@ else
 	CXX_EXTRA_FLAGS = -L/opt/homebrew/opt/libpng/lib -framework GLUT -framework OpenGL -lpng16 
 endif
 
-CXXFLAGS = -g -O2 -Wall -Wno-sign-compare -I$(INCLUDE) -I$(INC_COMMON) -I/opt/homebrew/include -DHAVE_CONFIG_H 
+CXXFLAGS = -g -std=c++17 -O2 -Wall -Wno-sign-compare -I$(INCLUDE) -I$(INC_COMMON) -I/opt/homebrew/include -DHAVE_CONFIG_H 
 CXX = g++
 
 SRC_DIR = src

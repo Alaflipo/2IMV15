@@ -4,7 +4,11 @@
             "name": "Mac",
             "includePath": [
                 "${workspaceFolder}/**",
-                "/opt/homebrew/include"
+                "/opt/homebrew/include",
+                "/Users/morrisboers/Documents/2IMV15/project1/include/common",
+                "/Users/morrisboers/Documents/2IMV15/project1/include/linux",
+                "${workspaceFolder}/include/common",
+                "${workspaceFolder}/include/linux"
             ],
             "defines": [],
             "macFrameworkPath": [

@@ -13,7 +13,6 @@ void simulation_step( std::vector<Particle*> pVector, float dt )
         Vec2f accelaration = pVector[i]->get_acceleration();
 		pVector[i]->m_Position += dt * pVector[i]->m_Velocity;
 		pVector[i]->m_Velocity += dt * accelaration;
-        pVector[i]->m_Force_acc = 0.0;
         std::cout << pVector[i]->m_Velocity[0] << " " << pVector[i]->m_Velocity[1] << " " << pVector[i]->m_Mass << "\n";
     }
 

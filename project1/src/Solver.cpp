@@ -3,7 +3,7 @@
 #include <vector>
 #include <iostream>
 
-#define DAMP 0.995f;
+#define DAMP 0.98f;
 #define RAND (((rand()%2000)/1000.f)-1.f)
 
 void eulerStep(Particle * p, float dt, std::vector<Vec2f> state, std::vector<Vec2f> derivEval) {

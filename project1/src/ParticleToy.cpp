@@ -37,7 +37,7 @@ static int mouse_shiftclick[3];
 static int omx, omy, mx, my;
 static int hmx, hmy;
 
-static SpringForce * delete_this_dummy_spring = NULL;
+static GravityForce * gravity_force; 
 static GravityForce * gravity_force = NULL; 
 static RodConstraint * delete_this_dummy_rod = NULL;
 static CircularWireConstraint * delete_this_dummy_wire = NULL;
@@ -94,18 +94,22 @@ static void clear_data ( void )
 
 static void init_system(void)
 {
-	const double dist = 0.2;
-	const Vec2f center(0.0, 0.0);
-	const Vec2f offset(dist, 0.0);
+	const int runInstance = 1;
+	const bool gravity = true;
+
+	if (runInstance == 0) {
+		const double dist = 0.2;
+		const Vec2f center(0.0, 0.0);
+		const Vec2f offset(dist, 0.0);
 	const Vec2f tanki(0.0, dist*2);
 	const Vec2f tanki2(dist*2, dist *2);
 
 	// Create three particles, attach them to each other, then add a
 	// circular wire constraint to the first.
 
-	pVector.push_back(new Particle(center + offset));
-	pVector.push_back(new Particle(center + offset + offset));
-	pVector.push_back(new Particle(center + offset + offset + offset));
+		pVector.push_back(new Particle(center + offset));
+		pVector.push_back(new Particle(center + offset + offset));
+		pVector.push_back(new Particle(center + offset + offset + offset));
 	// pVector.push_back(new Particle((center + tanki)));
 	// pVector.push_back(new Particle((center + tanki2)));
 	// pVector.push_back(new Particle((0, 0.7)));
@@ -118,24 +122,57 @@ static void init_system(void)
 
 	// springForces.push_back(new SpringForce(pVector[0], pVector[1], dist, 1.0, 1.0));
 
-	CircularWireConstraint * circularWireConstraint = new CircularWireConstraint(pVector[0], center, dist);
-	circularWireConstraints.push_back(circularWireConstraint);
-	constraints.push_back(circularWireConstraint);
+		CircularWireConstraint * circularWireConstraint = new CircularWireConstraint(pVector[0], center, dist);
+		circularWireConstraints.push_back(circularWireConstraint);
+		constraints.push_back(circularWireConstraint);
 
-	RodConstraint * rodConstraint = new RodConstraint(pVector[0], pVector[1], dist);
-	rodConstraints.push_back(rodConstraint);
-	constraints.push_back(rodConstraint);
-	constraintSolver = new ConstraintSolver(pVector, constraints);
-
-
-	// rodConstraints.push_back(new RodConstraint(pVector[0], center + offset, dist));
-	// springForces.push_back(new SpringForce(pVector[0], pVector[3], dist * 3, 1.0, 1.0));
-	// springForces.push_back(new SpringForce(pVector[3], pVector[4], dist * 6, 1.0, 1.0));
-	// springForces.push_back(new SpringForce(pVector[4], pVector[0], dist, 1.0, 1.0));
-	for (auto springForce: springForces) {
-		springForce->calculateForce();
+		RodConstraint * rodConstraint = new RodConstraint(pVector[0], pVector[1], dist);
+		rodConstraints.push_back(rodConstraint);
+		constraints.push_back(rodConstraint);
 	}
-    gravity_force = new GravityForce(pVector); 
+	else if (runInstance == 1) {
+		const int clothSize = 10;
+		const double dist = 0.1;
+		const Vec2f center(0.0, 0.0);
+
+		
+		for (int i = 0; i < clothSize; i++) {
+			for (int j = 0; j < clothSize; j++) {
+				Vec2f offset((i - (clothSize / 2)) * dist, (j - (clothSize / 2)) * dist);
+				pVector.push_back(new Particle(center + offset));
+			}
+		}
+
+		const Vec2f offset(0, dist / 5);
+
+		CircularWireConstraint * circularWireConstraint = new CircularWireConstraint(pVector[9], pVector[9]->m_ConstructPos + offset, dist / 5);
+		circularWireConstraints.push_back(circularWireConstraint);
+		constraints.push_back(circularWireConstraint);
+		CircularWireConstraint * circularWireConstraint2 = new CircularWireConstraint(pVector[99], pVector[99]->m_ConstructPos + offset, dist / 5);
+		circularWireConstraints.push_back(circularWireConstraint2);
+		constraints.push_back(circularWireConstraint2);
+
+		for (int i = 0; i < clothSize; i++) {
+			for (int j = 0; j < clothSize; j++) {
+				if (i != clothSize - 1) {
+					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 10], dist, 50.0, 1.0));
+				}
+
+				if (j != clothSize -1) {
+					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 1], dist, 50.0, 1.0));
+				}
+			}
+		}
+
+	}
+
+	if (constraints.size() > 0) {
+		constraintSolver = new ConstraintSolver(pVector, constraints);
+	}
+
+	if (gravity) {
+		gravity_force = new GravityForce(pVector); 
+	}	
 }
 
 /*
@@ -193,17 +230,19 @@ static void draw_particles ( void )
 static void draw_forces ( void )
 {
 	// change this to iteration over full set
-	// if (delete_this_dummy_spring)
+	if (springForces.size() > 0) {
 	// 	delete_this_dummy_spring->draw();
 
-	for (SpringForce * springForce: springForces) {
-		springForce->draw();
+		for (SpringForce * springForce: springForces) {
+			springForce->draw();
+		}
 	}
+
 }
 
 static void draw_constraints ( void )
 {
-	// change this to iteration over full set
+	if (constraints.size() > 0) {
 	if (delete_this_dummy_rod)
 		delete_this_dummy_rod->draw();
 	// if (delete_this_dummy_wire)
@@ -213,8 +252,9 @@ static void draw_constraints ( void )
 	// 	circularWireConstraint->draw();
 	// }
 
-	for (Constraint * constraint: constraints) {
-		constraint->draw();
+		for (Constraint * constraint: constraints) {
+			constraint->draw();
+		}
 	}
 }
 
@@ -339,7 +379,9 @@ static void derivEval() {
 	// for (CircularWireConstraint * circularWireConstraint: circularWireConstraints) {
 	// 	circularWireConstraint->calculateConstraintForce();
 	// }
-	constraintSolver->calculateConstraintForce();
+	if (constraintSolver) {
+		constraintSolver->calculateConstraintForce();
+	}
     
     
 	// Run a step in the simulation 0 = Euler, 1 = Midpoint, 2 = Runge-Kutta
@@ -417,7 +459,7 @@ int main ( int argc, char ** argv )
 
 	if ( argc == 1 ) {
 		N = 64;
-		dt = 0.1f;		// Simulation speed, default = 0.1
+		dt = 0.010;		// Simulation speed, default = 0.1
 		d = 5.f;
 		fprintf ( stderr, "Using defaults : N=%d dt=%g d=%g\n",
 			N, dt, d );

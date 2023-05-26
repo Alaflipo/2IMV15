@@ -258,9 +258,25 @@ static void get_from_UI ()
 	if ( mouse_down[0] ) {
 		Vec2f position(x, y);
 		if (!activeMouseParticle) {
-			activeMouseParticle = true;
-			pVector.push_back(new Particle(position));
-			springForces.push_back(new SpringForce(pVector[pVector.size() - 1], pVector[0], 0.1 , 50.0, 1.0));
+
+			Particle* closestParticle = NULL;
+			float minDistance = 100000;
+
+			for (int i = 0; i < pVector.size() -1; i++) {
+				Particle* part = pVector[i];
+				Vec2f diff = part->m_Position - position;
+				float dist = sqrt(diff * diff);
+				if (dist < minDistance) {
+					minDistance = dist;
+					closestParticle = part;
+				};
+			}
+
+			if (closestParticle) {
+				activeMouseParticle = true;
+				pVector.push_back(new Particle(position));
+				springForces.push_back(new SpringForce(pVector[pVector.size() - 1], closestParticle, minDistance, 50.0, 1.0));
+			}
 		} else {
 			pVector[pVector.size() - 1]->m_Position = position;
 		}

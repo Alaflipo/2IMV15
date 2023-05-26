@@ -9,10 +9,10 @@ ifeq ($(OS),Windows_NT)
 else
 	RM = rm -vf
 	INCLUDE = $(INC_LINUX)
-	CXX_EXTRA_FLAGS = -L/opt/homebrew/opt/libpng/lib -framework GLUT -framework OpenGL -lpng16 
+	CXX_EXTRA_FLAGS = -lglut -lGLU -lGL -lpng
 endif
 
-CXXFLAGS = -g -O2 -Wall -Wno-sign-compare -I$(INCLUDE) -I$(INC_COMMON) -I/opt/homebrew/include -DHAVE_CONFIG_H 
+CXXFLAGS = -g -O2 -Wall -Wno-sign-compare -I$(INCLUDE) -I$(INC_COMMON) -DHAVE_CONFIG_H 
 CXX = g++
 
 SRC_DIR = src
@@ -21,7 +21,7 @@ BIN_DIR = bin
 
 SOURCES = $(wildcard $(SRC_DIR)/*cpp)
 OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(notdir $(SOURCES)))
-EXECUTABLE = $(BIN_DIR)/project1.out
+EXECUTABLE = $(BIN_DIR)/project1.exe
 
 all: $(OBJ_DIR) $(BIN_DIR) $(EXECUTABLE)
 
@@ -39,4 +39,4 @@ $(EXECUTABLE): $(OBJECTS)
 
 clean:
 	@$(RM) $(OBJ_DIR)/*
-	@$(RM) $(BIN_DIR)/*out
+	@$(RM) $(BIN_DIR)/*exe

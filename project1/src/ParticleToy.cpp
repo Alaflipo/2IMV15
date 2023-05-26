@@ -13,6 +13,8 @@
 #include <stdio.h>
 #include <GL/glut.h>
 
+#include <Eigen/Dense>
+using namespace Eigen;
 /* macros */
 
 /* external definitions (from solver) */
@@ -40,7 +42,6 @@ static int hmx, hmy;
 static bool activeMouseParticle;
 
 static GravityForce * gravity_force;
-
 static std::vector<SpringForce *> springForces;
 static std::vector<CircularWireConstraint *> circularWireConstraints;
 static std::vector<RodConstraint *> rodConstraints;
@@ -57,7 +58,6 @@ free/clear/allocate simulation data
 static void free_data ( void )
 {
 	pVector.clear();
-
 
 	springForces.clear();
 	circularWireConstraints.clear();
@@ -81,7 +81,7 @@ static void clear_data ( void )
 
 static void init_system(void)
 {
-	const int runInstance = 1;
+	const int runInstance = 0;
 	const bool gravity = true;
 
 	if (runInstance == 0) {
@@ -89,23 +89,9 @@ static void init_system(void)
 		const Vec2f center(0.0, 0.0);
 		const Vec2f offset(dist, 0.0);
 
-	// Create three particles, attach them to each other, then add a
-	// circular wire constraint to the first.
-
 		pVector.push_back(new Particle(center + offset));
 		pVector.push_back(new Particle(center + offset + offset));
 		pVector.push_back(new Particle(center + offset + offset + offset));
-	// pVector.push_back(new Particle((center + tanki)));
-	// pVector.push_back(new Particle((center + tanki2)));
-	// pVector.push_back(new Particle((0, 0.7)));
-	
-	// You shoud replace these with a vector generalized forces and one of
-	// constraints...
-	// delete_this_dummy_spring = new SpringForce(pVector[0], pVector[1], dist, 1.0, 1.0);
-	// delete_this_dummy_rod = new RodConstraint(pVector[1], pVector[2], dist);
-	// delete_this_dummy_wire = new CircularWireConstraint(pVector[0], center, dist);
-
-	// springForces.push_back(new SpringForce(pVector[0], pVector[1], dist, 1.0, 1.0));
 
 		CircularWireConstraint * circularWireConstraint = new CircularWireConstraint(pVector[0], center, dist);
 		circularWireConstraints.push_back(circularWireConstraint);
@@ -140,11 +126,11 @@ static void init_system(void)
 		for (int i = 0; i < clothSize; i++) {
 			for (int j = 0; j < clothSize; j++) {
 				if (i != clothSize - 1) {
-					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 10], dist, 50.0, 1.0));
+					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 10], dist, 200.0, 1.0));
 				}
 
 				if (j != clothSize -1) {
-					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 1], dist, 50.0, 1.0));
+					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 1], dist, 200.0, 1.0));
 				}
 			}
 		}
@@ -159,6 +145,67 @@ static void init_system(void)
 		gravity_force = new GravityForce(pVector); 
 	}	
 }
+
+void implicitEulerStep() 
+{
+	int dimensions = 2;
+	
+	for (SpringForce * springForce: springForces) {
+		std::vector<Particle *> particles = springForce->getParticles();
+		Vec2f dxVec = ((particles[0]->m_Position) - (particles[1]->m_Position));
+		VectorXf dx = VectorXf::Zero(dimensions);
+		dx[0] = ((particles[0]->m_Position) - (particles[1]->m_Position))[0];
+		dx[1] = ((particles[0]->m_Position) - (particles[1]->m_Position))[1];
+		MatrixXf I = MatrixXf::Identity(dimensions, dimensions);
+		MatrixXf dxtdx = MatrixXf::Zero(dx.size(), dx.size());
+		dxtdx = (dx * (dx.transpose()));
+
+		double l = sqrt(dxVec * dxVec);
+		if (l != 0) {
+			l = 1 / l;
+		}
+
+		dxtdx = dxtdx * (l * l);
+		springForce->Jx = (dxtdx + (I - dxtdx) * (1 - springForce->m_dist * l)) * (springForce->m_ks);
+		springForce->Jv = MatrixXf::Identity(dimensions, dimensions);
+		springForce->Jv *= springForce->m_kd;
+	}
+}
+
+void MultiplyDfDx(Vector2d* src, Vector2d* dst) 
+{
+	for (int i = 0; i < pVector.size(); i++) {
+		dst[i] = Vector2d(0, 0);
+	}
+
+	for (SpringForce* springForce: springForces) {
+		Vector2d temp = Vector2d::Zero(2);
+		std::vector<Particle*> particles = springForce->getParticles();
+		std::vector<int> particleIndices = {0, 0};
+		for (int i = 0; i < pVector.size(); i++) {
+			if (pVector[i] == particles[0]) {
+				particleIndices[0] = i;
+			} else if (pVector[i] == particles[1]) {
+				particleIndices[1] = i;
+			}
+		}
+		temp = springForce->Jx * (src[particleIndices[0]]);
+		dst[particleIndices[0]] -= temp;
+		dst[particleIndices[1]] += temp;
+	}
+}
+
+void solveLinearSystem() 
+{
+	MatrixXf A = MatrixXf::Zero(2 * springForces.size(), 2 * springForces.size());
+	MatrixXf M = MatrixXf::Zero(2 * springForces.size(), 2 * springForces.size());
+	for (int i = 0; i < pVector.size(); i++) {
+		for (int j = 0; j < 2; j++) {
+			M[i * 2 + j, i * 2 + j] = pVector[i]->m_Mass;
+		}
+	}
+}
+
 
 /*
 ----------------------------------------------------------------------
@@ -392,7 +439,7 @@ static void derivEval() {
     
     
 	// Run a step in the simulation 0 = Euler, 1 = Midpoint, 2 = Runge-Kutta
-	simulation_step( pVector, dt, 2);
+	simulation_step( pVector, dt, 0);
 }
 
 static void idle_func ( void )
@@ -466,7 +513,7 @@ int main ( int argc, char ** argv )
 
 	if ( argc == 1 ) {
 		N = 64;
-		dt = 0.010;		// Simulation speed, default = 0.1
+		dt = 0.14;		// Simulation speed, default = 0.1
 		d = 5.f;
 		fprintf ( stderr, "Using defaults : N=%d dt=%g d=%g\n",
 			N, dt, d );

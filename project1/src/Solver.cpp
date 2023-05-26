@@ -2,9 +2,23 @@
 
 #include <vector>
 #include <iostream>
+#include <Eigen/Dense>
 
 #define DAMP 0.98f;
 #define RAND (((rand()%2000)/1000.f)-1.f)
+
+using namespace Eigen;
+
+// void implicitEulerStep(std::vector<Particle*> pVector) {
+//     int dimensions = 2;
+
+//     MatrixXf Jx;
+//     MatrixXf Jv;
+
+//     for (int i = 0; i < pVector.size(); i++) {
+//         VectorXf dx = pVector[i]
+//     }
+// }
 
 void eulerStep(Particle * p, float dt, std::vector<Vec2f> state, std::vector<Vec2f> derivEval) {
     Vec2f position = state[0] + dt * derivEval[0];

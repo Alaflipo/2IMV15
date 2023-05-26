@@ -1,5 +1,5 @@
 #include "SpringForce.h"
-#include <GLUT/glut.h>
+#include <GL/glut.h>
 #include "cmath"
 
 SpringForce::SpringForce(Particle *p1, Particle * p2, double dist, double ks, double kd) :
@@ -39,4 +39,8 @@ void SpringForce::calculateForce()
   m_p2->m_Force_acc += fp2;
   // std::cout << "particle 2 force: " << m_p2->m_force[0] << ", " << m_p2->m_force[1] << std::endl;
 
+}
+
+std::vector<Particle *> SpringForce::getParticles() {
+  return {m_p1, m_p2};
 }

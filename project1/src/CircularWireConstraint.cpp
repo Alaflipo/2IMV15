@@ -1,5 +1,5 @@
 #include "CircularWireConstraint.h"
-#include <GLUT/glut.h>
+#include <GL/glut.h>
 #include <vector>
 #include <stdlib.h>
 #include <stdio.h>

@@ -229,10 +229,7 @@ static void draw_particles ( void )
 
 static void draw_forces ( void )
 {
-	// change this to iteration over full set
 	if (springForces.size() > 0) {
-	// 	delete_this_dummy_spring->draw();
-
 		for (SpringForce * springForce: springForces) {
 			springForce->draw();
 		}
@@ -243,15 +240,6 @@ static void draw_forces ( void )
 static void draw_constraints ( void )
 {
 	if (constraints.size() > 0) {
-	if (delete_this_dummy_rod)
-		delete_this_dummy_rod->draw();
-	// if (delete_this_dummy_wire)
-	// 	delete_this_dummy_wire->draw();
-
-	// for (CircularWireConstraint * circularWireConstraint: circularWireConstraints) {
-	// 	circularWireConstraint->draw();
-	// }
-
 		for (Constraint * constraint: constraints) {
 			constraint->draw();
 		}

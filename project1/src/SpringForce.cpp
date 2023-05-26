@@ -1,5 +1,5 @@
 #include "SpringForce.h"
-#include <GLUT/glut.h>
+#include <GL/glut.h>
 #include "cmath"
 
 SpringForce::SpringForce(Particle *p1, Particle * p2, double dist, double ks, double kd) :

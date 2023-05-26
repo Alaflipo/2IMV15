@@ -1,5 +1,5 @@
 #include "GravityForce.h"
-#include <GLUT/glut.h>
+#include <GL/glut.h>
 #include <vector>
 
 GravityForce::GravityForce(std::vector<Particle*> pVector) : 

@@ -22,6 +22,8 @@ extern void simulation_step(std::vector<Particle*> pVector, float dt, int scheme
 
 /* global variables */
 
+static int runIdx = 0;
+
 static int N;
 static float dt, d;
 static int dsim;
@@ -81,7 +83,7 @@ static void clear_data ( void )
 
 static void init_system(void)
 {
-	const int runInstance = 0;
+	const int runInstance = 1;
 	const bool gravity = true;
 
 	if (runInstance == 0) {
@@ -126,11 +128,11 @@ static void init_system(void)
 		for (int i = 0; i < clothSize; i++) {
 			for (int j = 0; j < clothSize; j++) {
 				if (i != clothSize - 1) {
-					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 10], dist, 200.0, 1.0));
+					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 10], dist, 200, 1.0));
 				}
 
 				if (j != clothSize -1) {
-					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 1], dist, 200.0, 1.0));
+					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 1], dist, 200, 1.0));
 				}
 			}
 		}
@@ -172,14 +174,60 @@ void implicitEulerStep()
 	}
 }
 
-void MultiplyDfDx(Vector2d* src, Vector2d* dst) 
+static void MultiplyDfDx(std::vector<VectorXf>  src, std::vector<VectorXf> dst) 
+{
+	// std::cout<< "UWUWUWUWUWUWUW" << std::endl;
+	for (int i = 0; i < pVector.size(); i++) {
+		// std::cout<< "0" << std::endl;
+		VectorXf tmp = VectorXf::Zero(2);
+		dst[i] = tmp;
+	}
+	// std::cout<< "1" << std::endl;
+	for (SpringForce* springForce: springForces) {
+		VectorXf temp = VectorXf::Zero(2);
+		std::vector<Particle*> particles = springForce->getParticles();
+		std::vector<int> particleIndices = {0, 0};
+		// std::cout<< "2" << std::endl;
+		for (int i = 0; i < pVector.size(); i++) {
+			if (pVector[i] == particles[0]) {
+				particleIndices[0] = i;
+			} else if (pVector[i] == particles[1]) {
+				particleIndices[1] = i;
+			}
+		}
+		// std::cout<< "3" << std::endl;
+		// std::cout << "cols2: " << src[particleIndices[0]].cols() << " " << src[particleIndices[1]].cols() << std::endl;
+		// std::cout << (src[particleIndices[0]] - src[particleIndices[1]]).cols();
+		// std::cout << "particle index 1: " << particleIndices[1] << std::endl;
+		// for (auto item: src[particleIndices[1]]) {
+		// 	std::cout << item << "  ";
+		// }
+		// std::cout << "rows2: " << src[particleIndices[0]].rows() << " " << src[particleIndices[1]].rows() << std::endl;
+		// std::cout << (src[particleIndices[0]] - src[particleIndices[1]]).rows();
+		// std::cout << "cols: " << springForce->Jx.cols() << std::endl;
+		temp = springForce->Jx * (src[particleIndices[0]] - src[particleIndices[1]]);
+		// std::cout << "jx[0]: " << springForce->Jx << std::endl;
+		// std::cout << "src1: " << src[particleIndices[0]] << "  src2: " << src[particleIndices[1]] << std::endl;
+		// std::cout << "src substraction: " << std::endl << (src[particleIndices[0]] - src[particleIndices[1]]) << std::endl;
+		// std::cout << "temp: " << std::endl << temp << std::endl;
+		dst[particleIndices[0]] -= temp;
+		// std::cout << "dst:[" << particleIndices[0] << "]: " << std::endl << dst[particleIndices[0]] << std::endl;
+		// std::cout << "	dst" << particleIndices[0] << ": " << dst[particleIndices[0]][0] << "  " << dst[particleIndices[0]][1] << std::endl;
+		dst[particleIndices[1]] += temp;
+		// std::cout << "	dst" << particleIndices[1] << ": " << dst[particleIndices[1]][0] << "  " << dst[particleIndices[1]][1] << std::endl;
+	}
+}
+
+static void MultiplyDfDv(std::vector<VectorXf> src, std::vector<VectorXf> dst) 
 {
 	for (int i = 0; i < pVector.size(); i++) {
-		dst[i] = Vector2d(0, 0);
+		VectorXf tmp = VectorXf::Zero(2);
+		dst[i] = tmp;
+		// std::cout << "dst" << i << ": " << dst[i][0] << "  " << dst[i][1] << std::endl;
 	}
 
 	for (SpringForce* springForce: springForces) {
-		Vector2d temp = Vector2d::Zero(2);
+		VectorXf temp = VectorXf::Zero(2);
 		std::vector<Particle*> particles = springForce->getParticles();
 		std::vector<int> particleIndices = {0, 0};
 		for (int i = 0; i < pVector.size(); i++) {
@@ -189,21 +237,144 @@ void MultiplyDfDx(Vector2d* src, Vector2d* dst)
 				particleIndices[1] = i;
 			}
 		}
-		temp = springForce->Jx * (src[particleIndices[0]]);
+		temp = springForce->Jv * (src[particleIndices[0]] - src[particleIndices[1]]);
+		// std::cout << "src substraction: " << (src[particleIndices[0]] - src[particleIndices[1]])[0] << "  " << (src[particleIndices[0]] - src[particleIndices[1]])[1] << std::endl;
+		// std::cout << "temp: " << temp[0] << "  " << temp[1] << std::endl;
 		dst[particleIndices[0]] -= temp;
+
+		// std::cout << "	dst" << particleIndices[0] << ": " << dst[particleIndices[0]][0] << "  " << dst[particleIndices[0]][1] << std::endl;
 		dst[particleIndices[1]] += temp;
+		// std::cout << "	dst" << particleIndices[1] << ": " << dst[particleIndices[1]][0] << "  " << dst[particleIndices[1]][1] << std::endl;
 	}
 }
 
 void solveLinearSystem() 
 {
-	MatrixXf A = MatrixXf::Zero(2 * springForces.size(), 2 * springForces.size());
-	MatrixXf M = MatrixXf::Zero(2 * springForces.size(), 2 * springForces.size());
+	implicitEulerStep();
+
+	MatrixXf A = MatrixXf::Zero(2 * pVector.size(), 2 * pVector.size());
+	MatrixXf M = MatrixXf::Zero(2 * pVector.size(), 2 * pVector.size());
 	for (int i = 0; i < pVector.size(); i++) {
 		for (int j = 0; j < 2; j++) {
-			M[i * 2 + j, i * 2 + j] = pVector[i]->m_Mass;
+			M(i * 2 + j, i * 2 + j) = pVector[i]->m_Mass;
 		}
 	}
+
+	VectorXf b = VectorXf::Zero(2 * pVector.size());
+	VectorXf f0 = VectorXf::Zero(2 * pVector.size());
+	std::vector<VectorXf> x0;
+	std::vector<VectorXf> v0; std::vector<VectorXf> dfdxv0(pVector.size(), VectorXf()); 
+	std::vector<VectorXf> dtVec; std::vector<VectorXf> dfdvdt(pVector.size(), VectorXf());
+	std::vector<VectorXf> dt2Vec; std::vector<VectorXf> dfdxdt2(pVector.size(), VectorXf());
+
+	for (int i = 0; i < pVector.size(); i++) {
+		VectorXf tmp = VectorXf::Zero(2);
+		tmp[0] = pVector[i]->get_state()[0][0];
+		tmp[1] = pVector[i]->get_state()[0][1];
+		x0.push_back(tmp);
+		// std::cout << "We take those" << std::endl;
+		VectorXf tmp2 = VectorXf::Zero(2);
+		tmp2[0] = pVector[i]->get_state()[1][0];
+		tmp2[1] = pVector[i]->get_state()[1][1];
+		v0.push_back(tmp2);
+		f0[i * 2] = pVector[i]->get_state()[1][0];
+		f0[i * 2 + 1] = pVector[i]->get_state()[1][1];
+		VectorXf tmp3 = VectorXf::Zero(2);
+		tmp3[0] = dt;
+		tmp3[1] = dt;
+		dtVec.push_back(tmp3);
+		VectorXf tmp4 = VectorXf::Zero(2);
+		tmp4[0] = dt * dt;
+		tmp4[1] = dt * dt;
+		dt2Vec.push_back(tmp4);
+	}
+
+	// int idx = 0;
+	// for (VectorXf veci: v0) {
+	// 	std::cout << "v0[" << idx << "]: " << std::endl << veci << std::endl;
+	// 	idx += 1;
+	// }
+	
+	MultiplyDfDx(v0, dfdxv0);
+	MultiplyDfDv(dtVec, dfdvdt);
+	MultiplyDfDx(dt2Vec, dfdxdt2);
+
+	// std::cout << "dfdxv0 size: " << dfdxv0.size() << std::endl;
+	// std::cout << "dfdxv0[0] size: " << dfdxv0[0][0] << dfdxv0[0][1] << std::endl;
+	// std::cout << "dfdvdtVec size: " << dfdvdtVec.size() << std::endl;
+	// std::cout << "dfdxdt2Vec size: " << dfdxdt2Vec.size() << std::endl;
+
+	VectorXf dfdxv0Vec = VectorXf::Zero(2 * pVector.size());
+	MatrixXf dfdvdtMat = MatrixXf::Zero(2 * pVector.size(), 2 * pVector.size());
+	MatrixXf dfdxdt2Mat = MatrixXf::Zero(2 * pVector.size(), 2 * pVector.size());
+
+	// std::cout << "dfdxv0Vec: " << std::endl << dfdxv0[0] << std::endl;
+	// if (dfdxv0[0] == VectorXf()) {
+	// 	std::cout << "NULL" << std::endl;
+	// }
+	// std::cout << "dfdxv0Vec: " << std::endl << dfdxv0Vec[99] << std::endl;
+	// std::cout << "dfdxv0Vec: " << std::endl << dfdxv0Vec[101] << std::endl;
+
+	// std::cout << "dfdxv0 size: " << dfdxv0.size() << std::endl;
+	for (int i = 0; i < dfdxv0.size(); i++) {
+		for (int j = 0; j < 2; j++) {
+			// std::cout << "i: " << i << "  j: " << j << std::endl;
+			if (dfdxv0[i] == VectorXf()) {
+				dfdxv0Vec[i * 2 + j] = 0;
+			} else {
+				dfdxv0Vec[i * 2 + j] = dfdxv0[i][j];
+			}
+
+			if (dfdvdt[i] == VectorXf()) {
+				dfdvdtMat(i * 2 + j, i * 2 + j) = 0;
+			} else {
+				dfdvdtMat(i * 2 + j, i * 2 + j) = dfdvdt[i][j];
+			}
+
+			if (dfdxdt2[i] == VectorXf()) {
+				dfdxdt2Mat(i * 2 + j, i * 2 + j) = 0;
+			} else {
+				dfdxdt2Mat(i * 2 + j, i * 2 + j) = dfdxdt2[i][j];
+			}			
+		}
+	}
+
+	b = (dt *(f0 + (dt * dfdxv0Vec)));
+	A = M - (dfdvdtMat) - (dfdxdt2Mat);
+
+	ConjugateGradient<MatrixXf, Lower|Upper> cg;
+	cg.compute(A);
+	Eigen::Solve<Eigen::ConjugateGradient<Eigen::MatrixXf, 3>, Eigen::VectorXf> dv = cg.solve(b);
+	std::vector<VectorXf> dx;
+
+	for (int i = 0; i < 100; i++) {
+		VectorXf tmpVec = VectorXf::Zero(2);
+		tmpVec[0] = dv[i * 2];
+		tmpVec[1] = dv[i * 2 + 1];
+		dx.push_back(tmpVec);
+	}
+
+	for (int i = 0; i < v0.size(); i++) {
+		dx[i] += v0[i];
+		dx[i] *= dt;
+		
+	}
+	std::cout << "dx[" << 1 << "]: " << dx[1] << std::endl;
+	std::cout << "x0[1]" << x0[1] << std::endl;
+
+	auto tank = pVector[1]->get_state();
+	std::cout << "old: pos: "<< tank[0] << "   vel: " << tank[1] << std::endl;
+
+	for (int i = 0; i < pVector.size(); i++) {
+		Vec2f xNew = Vec2f(x0[i][0] + dx[i][0], x0[i][1] + dx[i][1]);
+		Vec2f vNew = Vec2f(v0[i][0] + dv[i * 2], v0[i][1] + dv[i * 2 + 1]);
+		pVector[i]->set_state(xNew, vNew);
+		pVector[i]->clearForce();
+	}  
+
+	tank = pVector[1]->get_state();
+	std::cout << "new: pos: "<< tank[0] << "   vel: " << tank[1] << std::endl;
+
 }
 
 
@@ -439,8 +610,20 @@ static void derivEval() {
     
     
 	// Run a step in the simulation 0 = Euler, 1 = Midpoint, 2 = Runge-Kutta
-	simulation_step( pVector, dt, 0);
+	// simulation_step( pVector, dt, 2);
+
+	simulation_step( pVector, dt, 2);
+	// solveLinearSystem();
+
+	// if (runIdx == 0) {
+	// 	simulation_step( pVector, dt, 0);
+	// 	runIdx += 1;
+	// } else{
+	// 	solveLinearSystem();
+	// }
 }
+
+
 
 static void idle_func ( void )
 {
@@ -513,7 +696,7 @@ int main ( int argc, char ** argv )
 
 	if ( argc == 1 ) {
 		N = 64;
-		dt = 0.14;		// Simulation speed, default = 0.1
+		dt = 0.01;		// Simulation speed, default = 0.1
 		d = 5.f;
 		fprintf ( stderr, "Using defaults : N=%d dt=%g d=%g\n",
 			N, dt, d );

@@ -1,12 +1,26 @@
 #pragma once
 
 #include "Particle.h"
+#include "gfx/vec2.h"
+#include <Eigen/Dense>
+#include "Eigen/IterativeLinearSolvers"
+#include "Constraint.h"
 
-class RodConstraint {
+#include <vector>
+
+using namespace Eigen;
+
+class RodConstraint : public Constraint {
  public:
   RodConstraint(Particle *p1, Particle * p2, double dist);
+  virtual ~RodConstraint(void);
 
-  void draw();
+  void draw() override;
+  std::vector<Particle*> getParticles() override;
+  float getConstraint() override;
+  float getConstraintDerivative() override;
+  std::vector<Vec2f> getJacobian() override;
+  std::vector<Vec2f> getJacobianDerivative() override;
 
  private:
 

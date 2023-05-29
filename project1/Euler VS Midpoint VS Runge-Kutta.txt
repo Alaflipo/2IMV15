@@ -1,0 +1,7 @@
+vector (1.2, 1.2) with circular constraint force with center and dist
+With vector (1.4, 1.4) with rod constraint between this and previous particle with dist as parameter
+
+			Damp		dt
+Euler			0.98		0.13    Circular constraint is no longer stricly enforced
+Midpoint		0.98		0.1966	Unstable, as the 2 particles keep gaining velocity and leave screen
+Runge-Kutta		0.98		0.1966	Unstable, as the 2 particles keep gaining velocity and leave screen

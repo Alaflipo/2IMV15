@@ -1,12 +1,26 @@
 #pragma once
 
 #include "Particle.h"
+#include "gfx/vec2.h"
+#include <Eigen/Dense>
+#include "Eigen/IterativeLinearSolvers"
+#include "Constraint.h"
 
-class CircularWireConstraint {
+#include <vector>
+
+using namespace Eigen;
+
+class CircularWireConstraint : public Constraint {
  public:
-  CircularWireConstraint(Particle *p, const Vec2f & center, const double radius);
+  CircularWireConstraint(Particle* p, const Vec2f & center, const double radius);
+  virtual ~CircularWireConstraint(void);
 
-  void draw();
+  void draw() override;
+  std::vector<Particle*> getParticles() override;
+  float getConstraint() override;
+  float getConstraintDerivative() override;
+  std::vector<Vec2f> getJacobian() override;
+  std::vector<Vec2f> getJacobianDerivative() override;
 
  private:
 

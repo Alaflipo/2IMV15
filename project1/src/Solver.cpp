@@ -15,6 +15,7 @@ void simulation_step( std::vector<Particle*> pVector, float dt )
 		pVector[i]->m_Velocity += dt * accelaration;
         std::cout << pVector[i]->m_Velocity[0] << " " << pVector[i]->m_Velocity[1] << " " << pVector[i]->m_Mass << "\n";
     }
+}
 
 void eulerStep(Particle * p, float dt, std::vector<Vec2f> state, std::vector<Vec2f> derivEval) {
     Vec2f position = state[0] + dt * derivEval[0];

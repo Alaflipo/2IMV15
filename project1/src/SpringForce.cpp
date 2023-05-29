@@ -1,5 +1,9 @@
 #include "SpringForce.h"
-#include <GLUT/glut.h>
+#if defined(__CYGWIN__) || defined(WIN32)
+    #include <GL/glut.h>
+#else
+    #include <GLUT/glut.h>
+#endif
 #include "cmath"
 
 SpringForce::SpringForce(Particle *p1, Particle * p2, double dist, double ks, double kd) :

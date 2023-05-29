@@ -1,5 +1,9 @@
 #include "RodConstraint.h"
-#include <GL/glut.h>
+#if defined(__CYGWIN__) || defined(WIN32)
+    #include <GL/glut.h>
+#else
+    #include <GLUT/glut.h>
+#endif
 #include <vector>
 #include <stdlib.h>
 #include <stdio.h>

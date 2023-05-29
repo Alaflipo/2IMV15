@@ -8,10 +8,18 @@
 #include "imageio.h"
 #include "ConstraintSolver.h"
 #include "Constraint.h" 
+#include "AngularSpringForce.h"
 #include <vector>
 #include <stdlib.h>
 #include <stdio.h>
-#include <GL/glut.h>
+#if defined(__CYGWIN__) || defined(WIN32)
+    #include <GL/glut.h>
+#else
+    #include <GLUT/glut.h>
+#endif
+#include <LineConstraint.h>
+
+#define PI 3.1415926535897932384626433832795
 
 /* macros */
 
@@ -42,11 +50,15 @@ static bool activeMouseParticle;
 static GravityForce * gravity_force;
 
 static std::vector<SpringForce *> springForces;
+static std::vector<AngularSpringForce *> angularSpringForces;
 static std::vector<CircularWireConstraint *> circularWireConstraints;
 static std::vector<RodConstraint *> rodConstraints;
 
 static std::vector<Constraint *> constraints;
 static ConstraintSolver * constraintSolver;
+
+static std::vector<Particle*> endpoints; 
+static bool dude = false; 
 
 /*
 ----------------------------------------------------------------------
@@ -60,6 +72,7 @@ static void free_data ( void )
 
 
 	springForces.clear();
+    angularSpringForces.clear(); 
 	circularWireConstraints.clear();
 	rodConstraints.clear();
     if (gravity_force) {
@@ -114,8 +127,69 @@ static void init_system(void)
 		RodConstraint * rodConstraint = new RodConstraint(pVector[0], pVector[1], dist);
 		rodConstraints.push_back(rodConstraint);
 		constraints.push_back(rodConstraint);
-	}
-	else if (runInstance == 1) {
+
+    } else if (runInstance == 1) {
+        // hair simulation
+        dude = true; 
+        const int hairs = 50;
+        const float length = 0.5f; 
+        const int segments = 12;
+        const float width = 0.4;
+        float ks = 120.0f;
+        float kd = 1.5f;
+
+        for (int h = 0; h < hairs; h++) {
+            // Add particles for each hair 
+            for (int y = 0; y < (segments); y++) {
+                pVector.push_back(new Particle(Vec2f(
+                    width/hairs *h - 0.2, 
+                    0.5 + 0.4 * cos(PI/2.4/hairs * h) - (y * length/segments) 
+                )));
+            }
+
+            // Add springforces between each pair of particles 
+            for (int y = 0; y < segments - 1; y++) {
+                springForces.push_back(
+                    new SpringForce(
+                        pVector[h * segments + y],
+                        pVector[h * segments + y + 1],
+                        length/segments, ks, kd
+                    )
+                );
+            }
+
+            // Add angularspring forces between each triplet of particles 
+            for (int y = 0; y < segments - 2; y++) {
+                angularSpringForces.push_back(
+                    new AngularSpringForce(
+                        pVector[h * segments + y],
+                        pVector[h * segments + y + 1],
+                        pVector[h * segments + y + 2],
+                        0.5f, ks, kd
+                    )
+                );
+            }
+            
+            // Add constraints to the first particle of each hair 
+            float radius = 0.001f;
+            constraints.push_back(
+                new CircularWireConstraint(
+                    pVector[h * segments], 
+                    pVector[h * segments]->m_ConstructPos + Vec2f(-radius, 0.f), 
+                    radius
+                )
+            );
+
+            const double rail_dist = 0.001;
+            const Vec2f rail_start = Vec2f(-1, pVector[h*segments]->m_Position[1] + rail_dist);
+            const Vec2f rail_end = Vec2f(1, pVector[h*segments]->m_Position[1] + rail_dist);
+            constraints.push_back(new LineConstraint(pVector[h * segments], rail_start, rail_end, rail_dist));
+
+            endpoints.push_back(pVector[((h+1) * segments) - 1]);
+        }
+    
+    
+    } else if (runInstance == 2) {
 		const int clothSize = 10;
 		const double dist = 0.1;
 		const Vec2f center(0.0, 0.0);
@@ -204,12 +278,12 @@ static void post_display ( void )
 
 static void draw_particles ( void )
 {
-	int size = pVector.size();
+	// int size = pVector.size();
 
-	for(int ii=0; ii< size; ii++)
-	{
-		pVector[ii]->draw();
-	}
+	// for(int ii=0; ii< size; ii++)
+	// {
+	// 	pVector[ii]->draw();
+	// }
 }
 
 static void draw_forces ( void )
@@ -217,6 +291,12 @@ static void draw_forces ( void )
 	if (springForces.size() > 0) {
 		for (SpringForce * springForce: springForces) {
 			springForce->draw();
+		}
+	}
+
+    if (angularSpringForces.size() > 0) {
+		for (AngularSpringForce * angularSpringForce: angularSpringForces) {
+			angularSpringForce->draw();
 		}
 	}
 
@@ -229,6 +309,38 @@ static void draw_constraints ( void )
 			constraint->draw();
 		}
 	}
+}
+
+static void draw_dude (void) {
+    float head_radius = 0.4f;
+    float eye_radius = 0.05f; 
+    float eye_offset = 0.1f; 
+    Vec2f center = Vec2f(-0.2, 0.5); 
+    // head 
+    glBegin(GL_LINE_LOOP);
+    glColor3f(0.0,1.0,0.0); 
+    for (int i=80; i<385; i=i+9)
+    {
+        float degInRad = i*PI/180;
+        glVertex2f(center[0] + cos(degInRad)*head_radius,center[1] + sin(degInRad)*head_radius);
+    }
+    glEnd();
+    // eye 
+    glBegin(GL_LINE_LOOP);
+    glColor3f(0.0,1.0,0.0); 
+    for (int i=0; i<360; i=i+18)
+    {
+        float degInRad = i*PI/180;
+        glVertex2f(center[0] - eye_offset - cos(degInRad) * eye_radius, 
+                   center[1] + eye_offset + sin(degInRad) * eye_radius);
+    }
+    glEnd();
+    // mouth 
+    glBegin(GL_LINES);
+    glColor3f(1.0,0.0,0.0); 
+    glVertex2f(center[0] - 0.35, center[1] - 0.2);
+    glVertex2f(center[0] - 0.35 + 0.2, center[1] - 0.2);
+    glEnd();
 }
 
 /*
@@ -260,7 +372,10 @@ static void get_from_UI ()
 		if (!activeMouseParticle) {
 			activeMouseParticle = true;
 			pVector.push_back(new Particle(position));
-			springForces.push_back(new SpringForce(pVector[pVector.size() - 1], pVector[0], 0.1 , 50.0, 1.0));
+            for (Particle * endpoint: endpoints) {
+                springForces.push_back(new SpringForce(pVector[pVector.size() - 1], endpoint, 0.1 , 50.0, 1.0)); 
+            }
+			// springForces.push_back(new SpringForce(pVector[pVector.size() - 1], pVector[pVector.size() - 2], 0.1 , 50.0, 1.0));
 		} else {
 			pVector[pVector.size() - 1]->m_Position = position;
 		}
@@ -277,7 +392,9 @@ static void get_from_UI ()
 		if (activeMouseParticle) {
 			activeMouseParticle = false;
 			pVector.pop_back();
-			springForces.pop_back();
+            for (Particle * endpoint: endpoints) {
+                springForces.pop_back(); 
+            }
 		}
 		mouse_release[0] = false;
 	}
@@ -364,12 +481,16 @@ static void derivEval() {
 	for (SpringForce * springForce: springForces) {
 		springForce->calculateForce();
 	}
+
+	for (AngularSpringForce * angularSpringForce: angularSpringForces) {
+		angularSpringForce->calculateForce();
+	}
 	gravity_force->calculateGravityForce(); 
 
 	// Calculate all constraint forces working on all particles
 	// for (CircularWireConstraint * circularWireConstraint: circularWireConstraints) {
 	// 	circularWireConstraint->calculateConstraintForce();
-	// }
+	// }x
 	if (constraintSolver) {
 		constraintSolver->calculateConstraintForce();
 	}
@@ -396,6 +517,8 @@ static void display_func ( void )
 {
 	pre_display ();
 
+    if (dude) 
+        draw_dude(); 
 	draw_forces();
 	draw_constraints();
 	draw_particles();
@@ -471,8 +594,8 @@ int main ( int argc, char ** argv )
 	
 	init_system();
 	
-	win_x = 512;
-	win_y = 512;
+	win_x = 1024;
+	win_y = 1024;
 	open_glut_window ();
 
 	glutMainLoop ();

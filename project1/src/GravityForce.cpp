@@ -1,9 +1,13 @@
 #include "GravityForce.h"
-#include <GL/glut.h>
+#if defined(__CYGWIN__) || defined(WIN32)
+    #include <GL/glut.h>
+#else
+    #include <GLUT/glut.h>
+#endif
 #include <vector>
 
 GravityForce::GravityForce(std::vector<Particle*> pVector) : 
-    m_pVec(pVector), G_const(0.1) {
+    m_pVec(pVector), G_const(1) {
 }
 
 GravityForce::~GravityForce(void) {}

@@ -30,7 +30,12 @@ void SpringForce::calculateForce()
   // std::cout << "l: " << l << std::endl;
   // std::cout << "dist_l: " << dist_l << std::endl;
   // std::cout << "i: " << i << std::endl;
-  Vec2f fp1 = -((m_ks * (dist_l - m_dist) + m_kd * ((i * l) / (dist_l))) * l / dist_l);
+  // Vec2f fp1 = -((m_ks * (dist_l - m_dist) + m_kd * ((i * l) / (dist_l))) * l / dist_l);
+  // Vec2f fp1 = -((m_ks * (dist_l - m_dist)));
+  // double distance = sqrt(pow(m_p1->m_Position[0] - m_p2->m_Position[0], 2)) + (pow(m_p1->m_Position[1] - m_p2->m_Position[1], 2));
+  // std::cout << "Distance: " << distance << std::endl;
+
+  Vec2f fp1 = -(m_ks * (dist_l - m_dist) * ((l) / dist_l));
   Vec2f fp2 = -fp1;
   // std::cout << "fp1: " << fp1[0] << ", " << fp1[1] << std::endl;
   // std::cout << "fp2: " << fp2[0] << ", " << fp2[1] << std::endl;

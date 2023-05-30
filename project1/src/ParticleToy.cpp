@@ -128,11 +128,11 @@ static void init_system(void)
 		for (int i = 0; i < clothSize; i++) {
 			for (int j = 0; j < clothSize; j++) {
 				if (i != clothSize - 1) {
-					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 10], dist, 200.0, 10.0));
+					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 10], dist, 50.0, 0.0));
 				}
 
 				if (j != clothSize -1) {
-					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 1], dist, 200.0, 10.0));
+					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 1], dist, 50.0, 0.0));
 				}
 			}
 		}
@@ -368,10 +368,8 @@ void solveLinearSystem()
 	for (int i = 0; i < pVector.size(); i++) {
 		Vec2f xNew = Vec2f(x0[i][0] + dx[i][0], x0[i][1] + dx[i][1]);
 		Vec2f vNew = Vec2f(v0[i][0] + dv[i * 2], v0[i][1] + dv[i * 2 + 1]);
-		pVector[i]->set_state(xNew, vNew);
-		pVector[i]->clearForce();
-	}  
-
+		pVector[i]->set_state(xNew, vNew * 0.95);
+	}
 	tank = pVector[1]->get_state();
 	std::cout << "new: pos: "<< tank[0] << "   vel: " << tank[1] << std::endl;
 
@@ -605,7 +603,7 @@ static void derivEval() {
 	// 	circularWireConstraint->calculateConstraintForce();
 	// }
 	if (constraintSolver) {
-		constraintSolver->calculateConstraintForce();
+		// constraintSolver->calculateConstraintForce();
 	}
     
     
@@ -614,6 +612,9 @@ static void derivEval() {
 
 	// simulation_step( pVector, dt, 2);
 	solveLinearSystem();
+
+	pVector[9]->reset();
+	pVector[99]->reset();
 
 	// if (runIdx == 0) {
 	// 	simulation_step( pVector, dt, 0);

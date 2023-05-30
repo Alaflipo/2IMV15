@@ -30,6 +30,7 @@ extern void simulation_step(std::vector<Particle*> pVector, float dt, int scheme
 
 static int N;
 static float dt, d;
+static int scheme; 
 static int dsim;
 static int dump_frames;
 static int frame_number;
@@ -58,7 +59,13 @@ static std::vector<Constraint *> constraints;
 static ConstraintSolver * constraintSolver;
 
 static std::vector<Particle*> endpoints; 
+
 static bool dude = false; 
+static bool particle_draw = true; 
+
+static bool gravity = true; 
+static int runInstance = 1;
+
 
 /*
 ----------------------------------------------------------------------
@@ -69,12 +76,14 @@ free/clear/allocate simulation data
 static void free_data ( void )
 {
 	pVector.clear();
-
+    dude = false;
+    particle_draw = true; 
 
 	springForces.clear();
     angularSpringForces.clear(); 
 	circularWireConstraints.clear();
 	rodConstraints.clear();
+    endpoints.clear();
     if (gravity_force) {
 		delete gravity_force;
 		gravity_force = NULL;
@@ -94,43 +103,45 @@ static void clear_data ( void )
 
 static void init_system(void)
 {
-	const int runInstance = 1;
-	const bool gravity = true;
 
 	if (runInstance == 0) {
 		const double dist = 0.2;
 		const Vec2f center(0.0, 0.0);
-		const Vec2f offset(dist, 0.0);
+		const Vec2f offset_x(dist, 0.0);
+        const Vec2f offset_y(0.0, dist);
 
-	// Create three particles, attach them to each other, then add a
-	// circular wire constraint to the first.
 
-		pVector.push_back(new Particle(center + offset));
-		pVector.push_back(new Particle(center + offset + offset));
-		pVector.push_back(new Particle(center + offset + offset + offset));
-	// pVector.push_back(new Particle((center + tanki)));
-	// pVector.push_back(new Particle((center + tanki2)));
-	// pVector.push_back(new Particle((0, 0.7)));
-	
-	// You shoud replace these with a vector generalized forces and one of
-	// constraints...
-	// delete_this_dummy_spring = new SpringForce(pVector[0], pVector[1], dist, 1.0, 1.0);
-	// delete_this_dummy_rod = new RodConstraint(pVector[1], pVector[2], dist);
-	// delete_this_dummy_wire = new CircularWireConstraint(pVector[0], center, dist);
+		pVector.push_back(new Particle(center + offset_x));
+		pVector.push_back(new Particle(center + offset_x + offset_x));
+        pVector.push_back(new Particle(center + offset_x + offset_x + offset_y));	
+        pVector.push_back(new Particle(center + offset_x + offset_x + offset_y + offset_x));	
+        pVector.push_back(new Particle(center + offset_x + offset_x + offset_x));		
 
-	// springForces.push_back(new SpringForce(pVector[0], pVector[1], dist, 1.0, 1.0));
+        springForces.push_back(new SpringForce(pVector[0], pVector[1], dist, 50.0, 100.0));
 
 		CircularWireConstraint * circularWireConstraint = new CircularWireConstraint(pVector[0], center, dist);
 		circularWireConstraints.push_back(circularWireConstraint);
 		constraints.push_back(circularWireConstraint);
 
-		RodConstraint * rodConstraint = new RodConstraint(pVector[0], pVector[1], dist);
-		rodConstraints.push_back(rodConstraint);
-		constraints.push_back(rodConstraint);
+		RodConstraint * rodConstraint1 = new RodConstraint(pVector[1], pVector[2], dist);
+		rodConstraints.push_back(rodConstraint1);
+		constraints.push_back(rodConstraint1);
+        RodConstraint * rodConstraint2 = new RodConstraint(pVector[2], pVector[3], dist);
+		rodConstraints.push_back(rodConstraint2);
+		constraints.push_back(rodConstraint2);
+        RodConstraint * rodConstraint3 = new RodConstraint(pVector[3], pVector[4], dist);
+		rodConstraints.push_back(rodConstraint3);
+		constraints.push_back(rodConstraint3);
+        RodConstraint * rodConstraint4 = new RodConstraint(pVector[4], pVector[1], dist);
+		rodConstraints.push_back(rodConstraint4);
+		constraints.push_back(rodConstraint4);
+        
+        
 
     } else if (runInstance == 1) {
         // hair simulation
         dude = true; 
+        particle_draw = false; 
         const int hairs = 50;
         const float length = 0.5f; 
         const int segments = 12;
@@ -211,6 +222,7 @@ static void init_system(void)
 		circularWireConstraints.push_back(circularWireConstraint2);
 		constraints.push_back(circularWireConstraint2);
 
+
 		for (int i = 0; i < clothSize; i++) {
 			for (int j = 0; j < clothSize; j++) {
 				if (i != clothSize - 1) {
@@ -278,12 +290,12 @@ static void post_display ( void )
 
 static void draw_particles ( void )
 {
-	// int size = pVector.size();
+	int size = pVector.size();
 
-	// for(int ii=0; ii< size; ii++)
-	// {
-	// 	pVector[ii]->draw();
-	// }
+	for(int ii=0; ii< size; ii++)
+	{
+		pVector[ii]->draw();
+	}
 }
 
 static void draw_forces ( void )
@@ -372,10 +384,13 @@ static void get_from_UI ()
 		if (!activeMouseParticle) {
 			activeMouseParticle = true;
 			pVector.push_back(new Particle(position));
-            for (Particle * endpoint: endpoints) {
-                springForces.push_back(new SpringForce(pVector[pVector.size() - 1], endpoint, 0.1 , 50.0, 1.0)); 
+            if (runInstance == 1) {
+                for (Particle * endpoint: endpoints) {
+                    springForces.push_back(new SpringForce(pVector[pVector.size() - 1], endpoint, 0.1 , 50.0, 1.0)); 
+                }
+            } else {
+                springForces.push_back(new SpringForce(pVector[pVector.size() - 1], pVector[pVector.size() - 2], 0.1 , 50.0, 1.0));
             }
-			// springForces.push_back(new SpringForce(pVector[pVector.size() - 1], pVector[pVector.size() - 2], 0.1 , 50.0, 1.0));
 		} else {
 			pVector[pVector.size() - 1]->m_Position = position;
 		}
@@ -392,7 +407,11 @@ static void get_from_UI ()
 		if (activeMouseParticle) {
 			activeMouseParticle = false;
 			pVector.pop_back();
-            for (Particle * endpoint: endpoints) {
+            if (runInstance == 1) {
+                for (Particle * endpoint: endpoints) {
+                    springForces.pop_back(); 
+                }
+            } else {
                 springForces.pop_back(); 
             }
 		}
@@ -408,8 +427,7 @@ static void remap_GUI()
 	int ii, size = pVector.size();
 	for(ii=0; ii<size; ii++)
 	{
-		pVector[ii]->m_Position[0] = pVector[ii]->m_ConstructPos[0];
-		pVector[ii]->m_Position[1] = pVector[ii]->m_ConstructPos[1];
+		pVector[ii]->reset();
 	}
 }
 
@@ -438,11 +456,49 @@ static void key_func ( unsigned char key, int x, int y )
 		free_data ();
 		exit ( 0 );
 		break;
+    case ' ':
+        dsim = !dsim;
+        break;
+    case '0':
+        free_data();
+        runInstance = 0;
+        init_system();
+        break;
+    case '1':
+        free_data();
+        runInstance = 0;
+        init_system();
+        break;
 
-	case ' ':
-		dsim = !dsim;
-		break;
-	}
+    case '2':
+        free_data();
+        runInstance = 1;
+        init_system();
+        break;
+
+    case '3':
+        free_data();
+        runInstance = 2;
+        init_system();
+        break;
+    case 'i':
+    case 'I':
+        scheme = 0;
+        break;
+    case 'o':
+    case 'O':
+        scheme = 1;
+        break;
+    case 'p':
+    case 'P':
+        scheme = 2;
+        break;
+    case 'g':
+    case 'G':
+        gravity = !gravity;
+        break;
+    }
+   
 }
 
 static void mouse_func ( int button, int state, int x, int y )
@@ -497,7 +553,7 @@ static void derivEval() {
     
     
 	// Run a step in the simulation 0 = Euler, 1 = Midpoint, 2 = Runge-Kutta
-	simulation_step( pVector, dt, 2);
+	simulation_step( pVector, dt, scheme);
 }
 
 static void idle_func ( void )
@@ -521,7 +577,8 @@ static void display_func ( void )
         draw_dude(); 
 	draw_forces();
 	draw_constraints();
-	draw_particles();
+    if (particle_draw)
+	    draw_particles();
 
 	post_display ();
 }
@@ -575,6 +632,7 @@ int main ( int argc, char ** argv )
 		N = 64;
 		dt = 0.010;		// Simulation speed, default = 0.1
 		d = 5.f;
+        scheme = 2; 
 		fprintf ( stderr, "Using defaults : N=%d dt=%g d=%g\n",
 			N, dt, d );
 	} else {
@@ -586,7 +644,10 @@ int main ( int argc, char ** argv )
 	printf ( "\n\nHow to use this application:\n\n" );
 	printf ( "\t Toggle construction/simulation display with the spacebar key\n" );
 	printf ( "\t Dump frames by pressing the 'd' key\n" );
+    printf ( "\t Change scenes by pressing the number keys\n" );
+    printf ( "\t Change integration scheme by pressing 'i'(=euler), 'o'(=midpoint), 'p'(=rungekutta) \n" );
 	printf ( "\t Quit by pressing the 'q' key\n" );
+    
 
 	dsim = 0;
 	dump_frames = 0;

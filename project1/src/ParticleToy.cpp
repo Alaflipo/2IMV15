@@ -128,11 +128,11 @@ static void init_system(void)
 		for (int i = 0; i < clothSize; i++) {
 			for (int j = 0; j < clothSize; j++) {
 				if (i != clothSize - 1) {
-					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 10], dist, 200, 1.0));
+					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 10], dist, 200.0, 10.0));
 				}
 
 				if (j != clothSize -1) {
-					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 1], dist, 200, 1.0));
+					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 1], dist, 200.0, 10.0));
 				}
 			}
 		}
@@ -168,7 +168,7 @@ void implicitEulerStep()
 		}
 
 		dxtdx = dxtdx * (l * l);
-		springForce->Jx = (dxtdx + (I - dxtdx) * (1 - springForce->m_dist * l)) * (springForce->m_ks);
+		springForce->Jx = (dxtdx + ((I - dxtdx) * (1 - (springForce->m_dist * l)))) * (springForce->m_ks);
 		springForce->Jv = MatrixXf::Identity(dimensions, dimensions);
 		springForce->Jv *= springForce->m_kd;
 	}
@@ -277,8 +277,8 @@ void solveLinearSystem()
 		tmp2[0] = pVector[i]->get_state()[1][0];
 		tmp2[1] = pVector[i]->get_state()[1][1];
 		v0.push_back(tmp2);
-		f0[i * 2] = pVector[i]->get_state()[1][0];
-		f0[i * 2 + 1] = pVector[i]->get_state()[1][1];
+		f0[i * 2] = pVector[i]->derivEval()[1][0];
+		f0[i * 2 + 1] = pVector[i]->derivEval()[1][1];
 		VectorXf tmp3 = VectorXf::Zero(2);
 		tmp3[0] = dt;
 		tmp3[1] = dt;
@@ -612,8 +612,8 @@ static void derivEval() {
 	// Run a step in the simulation 0 = Euler, 1 = Midpoint, 2 = Runge-Kutta
 	// simulation_step( pVector, dt, 2);
 
-	simulation_step( pVector, dt, 2);
-	// solveLinearSystem();
+	// simulation_step( pVector, dt, 2);
+	solveLinearSystem();
 
 	// if (runIdx == 0) {
 	// 	simulation_step( pVector, dt, 0);
@@ -696,7 +696,7 @@ int main ( int argc, char ** argv )
 
 	if ( argc == 1 ) {
 		N = 64;
-		dt = 0.01;		// Simulation speed, default = 0.1
+		dt = 0.03;		// Simulation speed, default = 0.1
 		d = 5.f;
 		fprintf ( stderr, "Using defaults : N=%d dt=%g d=%g\n",
 			N, dt, d );

@@ -10,8 +10,8 @@ ConstraintSolver::ConstraintSolver(std::vector<Particle*> pVector, std::vector<C
 void ConstraintSolver::calculateConstraintForce()
 {
     const int dimensions = 2;
-    const float ks = 1;
-    const float kd = 1;
+    const float ks = 200;
+    const float kd = 10;
 
     const int pVec_size = m_pVector.size();
     const int num_constraints = m_constraintVector.size();

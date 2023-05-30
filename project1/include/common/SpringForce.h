@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Particle.h"
-#include <Eigen/Dense>;
+#include <Eigen/Dense>
 using namespace Eigen;
 
 class SpringForce {
@@ -9,7 +9,7 @@ class SpringForce {
   SpringForce(Particle *p1, Particle * p2, double dist, double ks, double kd);
 
   void draw();
-  void calculateForce();
+  void calculateForce(bool implicitEuler);
   std::vector<Particle *> getParticles();
 
   MatrixXf Jx = MatrixXf::Zero(2, 2);

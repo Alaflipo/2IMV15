@@ -3,6 +3,7 @@
 #include "Particle.h"
 #include "SpringForce.h"
 #include "RodConstraint.h"
+#include "RodConstraintSqrt.h"
 #include "GravityForce.h"
 #include "CircularWireConstraint.h"
 #include "imageio.h"
@@ -22,7 +23,6 @@ extern void simulation_step(std::vector<Particle*> pVector, float dt, int scheme
 
 /* global variables */
 
-static int runIdx = 0;
 
 static int N;
 static float dt, d;
@@ -41,16 +41,20 @@ static int mouse_shiftclick[3];
 static int omx, omy, mx, my;
 static int hmx, hmy;
 
-static bool activeMouseParticle;
-
 static GravityForce * gravity_force;
 static std::vector<SpringForce *> springForces;
 static std::vector<CircularWireConstraint *> circularWireConstraints;
 static std::vector<RodConstraint *> rodConstraints;
-
+static std::vector<RodConstraintSqrt *> rodConstraintsSqrt;
 static std::vector<Constraint *> constraints;
 static ConstraintSolver * constraintSolver;
 
+static bool activeMouseParticle;
+static bool implicitEuler = false;
+static int runInstance = 0;
+static bool gravity = true;
+static float timeStep = 0.01;
+static int integrationScheme = 2;
 /*
 ----------------------------------------------------------------------
 free/clear/allocate simulation data
@@ -83,9 +87,6 @@ static void clear_data ( void )
 
 static void init_system(void)
 {
-	const int runInstance = 1;
-	const bool gravity = true;
-
 	if (runInstance == 0) {
 		const double dist = 0.2;
 		const Vec2f center(0.0, 0.0);
@@ -94,6 +95,8 @@ static void init_system(void)
 		pVector.push_back(new Particle(center + offset));
 		pVector.push_back(new Particle(center + offset + offset));
 		pVector.push_back(new Particle(center + offset + offset + offset));
+		pVector.push_back(new Particle(center + offset + offset + offset + offset));
+		pVector.push_back(new Particle(center + offset + offset + offset + offset + offset));
 
 		CircularWireConstraint * circularWireConstraint = new CircularWireConstraint(pVector[0], center, dist);
 		circularWireConstraints.push_back(circularWireConstraint);
@@ -102,13 +105,24 @@ static void init_system(void)
 		RodConstraint * rodConstraint = new RodConstraint(pVector[0], pVector[1], dist);
 		rodConstraints.push_back(rodConstraint);
 		constraints.push_back(rodConstraint);
+		RodConstraint * rodConstraint2 = new RodConstraint(pVector[1], pVector[2], dist);
+		rodConstraints.push_back(rodConstraint2);
+		constraints.push_back(rodConstraint2);
+		RodConstraint * rodConstraint3 = new RodConstraint(pVector[2], pVector[3], dist);
+		rodConstraints.push_back(rodConstraint3);
+		constraints.push_back(rodConstraint3);
+
+		RodConstraintSqrt * rodConstraintSqrt = new RodConstraintSqrt(pVector[3], pVector[4], dist);
+		rodConstraintsSqrt.push_back(rodConstraintSqrt);
+		constraints.push_back(rodConstraintSqrt);
 	}
 	else if (runInstance == 1) {
+		const float ks = 200.0;
+		const float kd = 2;
 		const int clothSize = 10;
 		const double dist = 0.1;
 		const Vec2f center(0.0, 0.0);
 
-		
 		for (int i = 0; i < clothSize; i++) {
 			for (int j = 0; j < clothSize; j++) {
 				Vec2f offset((i - (clothSize / 2)) * dist, (j - (clothSize / 2)) * dist);
@@ -116,27 +130,17 @@ static void init_system(void)
 			}
 		}
 
-		const Vec2f offset(0, dist / 5);
-
-		CircularWireConstraint * circularWireConstraint = new CircularWireConstraint(pVector[9], pVector[9]->m_ConstructPos + offset, dist / 5);
-		circularWireConstraints.push_back(circularWireConstraint);
-		constraints.push_back(circularWireConstraint);
-		CircularWireConstraint * circularWireConstraint2 = new CircularWireConstraint(pVector[99], pVector[99]->m_ConstructPos + offset, dist / 5);
-		circularWireConstraints.push_back(circularWireConstraint2);
-		constraints.push_back(circularWireConstraint2);
-
 		for (int i = 0; i < clothSize; i++) {
 			for (int j = 0; j < clothSize; j++) {
 				if (i != clothSize - 1) {
-					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 10], dist, 50.0, 0.0));
+					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 10], dist, ks, kd));
 				}
 
 				if (j != clothSize -1) {
-					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 1], dist, 50.0, 0.0));
+					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 1], dist, ks, kd));
 				}
 			}
 		}
-
 	}
 
 	if (constraints.size() > 0) {
@@ -174,58 +178,12 @@ void implicitEulerStep()
 	}
 }
 
-static void MultiplyDfDx(std::vector<VectorXf>  src, std::vector<VectorXf> dst) 
-{
-	// std::cout<< "UWUWUWUWUWUWUW" << std::endl;
-	for (int i = 0; i < pVector.size(); i++) {
-		// std::cout<< "0" << std::endl;
-		VectorXf tmp = VectorXf::Zero(2);
-		dst[i] = tmp;
-	}
-	// std::cout<< "1" << std::endl;
-	for (SpringForce* springForce: springForces) {
-		VectorXf temp = VectorXf::Zero(2);
-		std::vector<Particle*> particles = springForce->getParticles();
-		std::vector<int> particleIndices = {0, 0};
-		// std::cout<< "2" << std::endl;
-		for (int i = 0; i < pVector.size(); i++) {
-			if (pVector[i] == particles[0]) {
-				particleIndices[0] = i;
-			} else if (pVector[i] == particles[1]) {
-				particleIndices[1] = i;
-			}
-		}
-		// std::cout<< "3" << std::endl;
-		// std::cout << "cols2: " << src[particleIndices[0]].cols() << " " << src[particleIndices[1]].cols() << std::endl;
-		// std::cout << (src[particleIndices[0]] - src[particleIndices[1]]).cols();
-		// std::cout << "particle index 1: " << particleIndices[1] << std::endl;
-		// for (auto item: src[particleIndices[1]]) {
-		// 	std::cout << item << "  ";
-		// }
-		// std::cout << "rows2: " << src[particleIndices[0]].rows() << " " << src[particleIndices[1]].rows() << std::endl;
-		// std::cout << (src[particleIndices[0]] - src[particleIndices[1]]).rows();
-		// std::cout << "cols: " << springForce->Jx.cols() << std::endl;
-		temp = springForce->Jx * (src[particleIndices[0]] - src[particleIndices[1]]);
-		// std::cout << "jx[0]: " << springForce->Jx << std::endl;
-		// std::cout << "src1: " << src[particleIndices[0]] << "  src2: " << src[particleIndices[1]] << std::endl;
-		// std::cout << "src substraction: " << std::endl << (src[particleIndices[0]] - src[particleIndices[1]]) << std::endl;
-		// std::cout << "temp: " << std::endl << temp << std::endl;
-		dst[particleIndices[0]] -= temp;
-		// std::cout << "dst:[" << particleIndices[0] << "]: " << std::endl << dst[particleIndices[0]] << std::endl;
-		// std::cout << "	dst" << particleIndices[0] << ": " << dst[particleIndices[0]][0] << "  " << dst[particleIndices[0]][1] << std::endl;
-		dst[particleIndices[1]] += temp;
-		// std::cout << "	dst" << particleIndices[1] << ": " << dst[particleIndices[1]][0] << "  " << dst[particleIndices[1]][1] << std::endl;
-	}
-}
-
-static void MultiplyDfDv(std::vector<VectorXf> src, std::vector<VectorXf> dst) 
+static void MultiplyDf(std::vector<VectorXf>  src, std::vector<VectorXf> dst, bool jacobianPosition) 
 {
 	for (int i = 0; i < pVector.size(); i++) {
 		VectorXf tmp = VectorXf::Zero(2);
 		dst[i] = tmp;
-		// std::cout << "dst" << i << ": " << dst[i][0] << "  " << dst[i][1] << std::endl;
 	}
-
 	for (SpringForce* springForce: springForces) {
 		VectorXf temp = VectorXf::Zero(2);
 		std::vector<Particle*> particles = springForce->getParticles();
@@ -237,14 +195,14 @@ static void MultiplyDfDv(std::vector<VectorXf> src, std::vector<VectorXf> dst)
 				particleIndices[1] = i;
 			}
 		}
-		temp = springForce->Jv * (src[particleIndices[0]] - src[particleIndices[1]]);
-		// std::cout << "src substraction: " << (src[particleIndices[0]] - src[particleIndices[1]])[0] << "  " << (src[particleIndices[0]] - src[particleIndices[1]])[1] << std::endl;
-		// std::cout << "temp: " << temp[0] << "  " << temp[1] << std::endl;
+		if (jacobianPosition) {
+			temp = springForce->Jx * (src[particleIndices[0]] - src[particleIndices[1]]);
+		} else {
+			temp = springForce->Jv * (src[particleIndices[0]] - src[particleIndices[1]]);
+		}
+		
 		dst[particleIndices[0]] -= temp;
-
-		// std::cout << "	dst" << particleIndices[0] << ": " << dst[particleIndices[0]][0] << "  " << dst[particleIndices[0]][1] << std::endl;
 		dst[particleIndices[1]] += temp;
-		// std::cout << "	dst" << particleIndices[1] << ": " << dst[particleIndices[1]][0] << "  " << dst[particleIndices[1]][1] << std::endl;
 	}
 }
 
@@ -272,7 +230,6 @@ void solveLinearSystem()
 		tmp[0] = pVector[i]->get_state()[0][0];
 		tmp[1] = pVector[i]->get_state()[0][1];
 		x0.push_back(tmp);
-		// std::cout << "We take those" << std::endl;
 		VectorXf tmp2 = VectorXf::Zero(2);
 		tmp2[0] = pVector[i]->get_state()[1][0];
 		tmp2[1] = pVector[i]->get_state()[1][1];
@@ -288,37 +245,17 @@ void solveLinearSystem()
 		tmp4[1] = dt * dt;
 		dt2Vec.push_back(tmp4);
 	}
-
-	// int idx = 0;
-	// for (VectorXf veci: v0) {
-	// 	std::cout << "v0[" << idx << "]: " << std::endl << veci << std::endl;
-	// 	idx += 1;
-	// }
 	
-	MultiplyDfDx(v0, dfdxv0);
-	MultiplyDfDv(dtVec, dfdvdt);
-	MultiplyDfDx(dt2Vec, dfdxdt2);
-
-	// std::cout << "dfdxv0 size: " << dfdxv0.size() << std::endl;
-	// std::cout << "dfdxv0[0] size: " << dfdxv0[0][0] << dfdxv0[0][1] << std::endl;
-	// std::cout << "dfdvdtVec size: " << dfdvdtVec.size() << std::endl;
-	// std::cout << "dfdxdt2Vec size: " << dfdxdt2Vec.size() << std::endl;
+	MultiplyDf(v0, dfdxv0, true);
+	MultiplyDf(dtVec, dfdvdt, false);
+	MultiplyDf(dt2Vec, dfdxdt2, true);
 
 	VectorXf dfdxv0Vec = VectorXf::Zero(2 * pVector.size());
 	MatrixXf dfdvdtMat = MatrixXf::Zero(2 * pVector.size(), 2 * pVector.size());
 	MatrixXf dfdxdt2Mat = MatrixXf::Zero(2 * pVector.size(), 2 * pVector.size());
 
-	// std::cout << "dfdxv0Vec: " << std::endl << dfdxv0[0] << std::endl;
-	// if (dfdxv0[0] == VectorXf()) {
-	// 	std::cout << "NULL" << std::endl;
-	// }
-	// std::cout << "dfdxv0Vec: " << std::endl << dfdxv0Vec[99] << std::endl;
-	// std::cout << "dfdxv0Vec: " << std::endl << dfdxv0Vec[101] << std::endl;
-
-	// std::cout << "dfdxv0 size: " << dfdxv0.size() << std::endl;
 	for (int i = 0; i < dfdxv0.size(); i++) {
 		for (int j = 0; j < 2; j++) {
-			// std::cout << "i: " << i << "  j: " << j << std::endl;
 			if (dfdxv0[i] == VectorXf()) {
 				dfdxv0Vec[i * 2 + j] = 0;
 			} else {
@@ -347,7 +284,7 @@ void solveLinearSystem()
 	Eigen::Solve<Eigen::ConjugateGradient<Eigen::MatrixXf, 3>, Eigen::VectorXf> dv = cg.solve(b);
 	std::vector<VectorXf> dx;
 
-	for (int i = 0; i < 100; i++) {
+	for (int i = 0; i < dv.size() / 2; i++) {
 		VectorXf tmpVec = VectorXf::Zero(2);
 		tmpVec[0] = dv[i * 2];
 		tmpVec[1] = dv[i * 2 + 1];
@@ -357,22 +294,13 @@ void solveLinearSystem()
 	for (int i = 0; i < v0.size(); i++) {
 		dx[i] += v0[i];
 		dx[i] *= dt;
-		
 	}
-	std::cout << "dx[" << 1 << "]: " << dx[1] << std::endl;
-	std::cout << "x0[1]" << x0[1] << std::endl;
-
-	auto tank = pVector[1]->get_state();
-	std::cout << "old: pos: "<< tank[0] << "   vel: " << tank[1] << std::endl;
 
 	for (int i = 0; i < pVector.size(); i++) {
 		Vec2f xNew = Vec2f(x0[i][0] + dx[i][0], x0[i][1] + dx[i][1]);
 		Vec2f vNew = Vec2f(v0[i][0] + dv[i * 2], v0[i][1] + dv[i * 2 + 1]);
-		pVector[i]->set_state(xNew, vNew * 0.95);
+		pVector[i]->set_state(xNew, vNew);
 	}
-	tank = pVector[1]->get_state();
-	std::cout << "new: pos: "<< tank[0] << "   vel: " << tank[1] << std::endl;
-
 }
 
 
@@ -594,34 +522,26 @@ static void derivEval() {
 
 	// Calculate all forces working on all particles
 	for (SpringForce * springForce: springForces) {
-		springForce->calculateForce();
+		springForce->calculateForce(implicitEuler);
 	}
 	gravity_force->calculateGravityForce(); 
 
-	// Calculate all constraint forces working on all particles
-	// for (CircularWireConstraint * circularWireConstraint: circularWireConstraints) {
-	// 	circularWireConstraint->calculateConstraintForce();
-	// }
+	// Calculate all constraint forces if applicable
 	if (constraintSolver) {
-		// constraintSolver->calculateConstraintForce();
+		constraintSolver->calculateConstraintForce();
 	}
     
-    
 	// Run a step in the simulation 0 = Euler, 1 = Midpoint, 2 = Runge-Kutta
-	// simulation_step( pVector, dt, 2);
+	if (!implicitEuler) {
+		simulation_step( pVector, dt, integrationScheme);
+	} else {
+		solveLinearSystem();
+		if (runInstance == 1) {
+			pVector[9]->reset();		// Fix top left point
+			pVector[99]->reset();		// Fix top right point
+		}	
 
-	// simulation_step( pVector, dt, 2);
-	solveLinearSystem();
-
-	pVector[9]->reset();
-	pVector[99]->reset();
-
-	// if (runIdx == 0) {
-	// 	simulation_step( pVector, dt, 0);
-	// 	runIdx += 1;
-	// } else{
-	// 	solveLinearSystem();
-	// }
+	}
 }
 
 
@@ -629,7 +549,6 @@ static void derivEval() {
 static void idle_func ( void )
 {
 	if ( dsim ) {
-        // simulation_step( pVector, dt );
         get_from_UI();derivEval();
     } else {
         get_from_UI();remap_GUI();
@@ -697,7 +616,7 @@ int main ( int argc, char ** argv )
 
 	if ( argc == 1 ) {
 		N = 64;
-		dt = 0.03;		// Simulation speed, default = 0.1
+		dt = timeStep;		// Simulation speed, default = 0.1
 		d = 5.f;
 		fprintf ( stderr, "Using defaults : N=%d dt=%g d=%g\n",
 			N, dt, d );

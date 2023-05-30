@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <iostream>
+#include <Eigen/Dense>
 
 #define DAMP 0.98f;
 #define RAND (((rand()%2000)/1000.f)-1.f)
@@ -16,6 +17,8 @@ void simulation_step( std::vector<Particle*> pVector, float dt )
         std::cout << pVector[i]->m_Velocity[0] << " " << pVector[i]->m_Velocity[1] << " " << pVector[i]->m_Mass << "\n";
     }
 }
+
+using namespace Eigen;
 
 void eulerStep(Particle * p, float dt, std::vector<Vec2f> state, std::vector<Vec2f> derivEval) {
     Vec2f position = state[0] + dt * derivEval[0];

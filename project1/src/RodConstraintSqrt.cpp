@@ -1,4 +1,4 @@
-#include "RodConstraint.h"
+#include "RodConstraintSqrt.h"
 #if defined(__CYGWIN__) || defined(WIN32) || __linux__
     #include <GL/glut.h>
 #else
@@ -12,23 +12,23 @@
 #include <Eigen/IterativeLinearSolvers>
 
 
-RodConstraint::RodConstraint(Particle *p1, Particle * p2, double dist) :
+RodConstraintSqrt::RodConstraintSqrt(Particle *p1, Particle * p2, double dist) :
   m_p1(p1), m_p2(p2), m_dist(dist) {}
 
-RodConstraint::~RodConstraint(void) {}
+RodConstraintSqrt::~RodConstraintSqrt(void) {}
 
-void RodConstraint::draw()
+void RodConstraintSqrt::draw()
 {
   glBegin( GL_LINES );
-  glColor3f(0.8, 0.7, 0.6);
+  glColor3f(0.8, 0, 0);
   glVertex2f( m_p1->m_Position[0], m_p1->m_Position[1] );
-  glColor3f(0.8, 0.7, 0.6);
+  glColor3f(0.8, 0, 0); 
   glVertex2f( m_p2->m_Position[0], m_p2->m_Position[1] );
   glEnd();
 
 }
 
-std::vector<Particle *> RodConstraint::getParticles()
+std::vector<Particle *> RodConstraintSqrt::getParticles()
 {
   std::vector<Particle *> particles;
   particles.push_back(m_p1);
@@ -36,20 +36,20 @@ std::vector<Particle *> RodConstraint::getParticles()
   return particles;
 }
 
-float RodConstraint::getConstraint()
+float RodConstraintSqrt::getConstraint()
 {
     Vec2f pos_diff = m_p1->m_Position - m_p2->m_Position;
-    return pow(pos_diff[0], 2) + pow(pos_diff[1], 2) - pow(m_dist, 2);
+    return sqrt(pow(pos_diff[0], 2) + pow(pos_diff[1], 2)) - m_dist;
 }
 
-float RodConstraint::getConstraintDerivative()
+float RodConstraintSqrt::getConstraintDerivative()
 {
     Vec2f pos_diff = m_p1->m_Position - m_p2->m_Position;
     Vec2f vel_diff = m_p1->m_Velocity - m_p2->m_Velocity;
-    return (2 * pos_diff * vel_diff);
+    return (pos_diff * vel_diff) / (pos_diff * pos_diff);
 }
 
-std::vector<Vec2f> RodConstraint::getJacobian()
+std::vector<Vec2f> RodConstraintSqrt::getJacobian()
 {
     Vec2f pos_diff1 = m_p1->m_Position - m_p2->m_Position;
     Vec2f pos_diff2 = m_p2->m_Position - m_p1->m_Position;
@@ -61,7 +61,7 @@ std::vector<Vec2f> RodConstraint::getJacobian()
     return res;
 }
 
-std::vector<Vec2f> RodConstraint::getJacobianDerivative()
+std::vector<Vec2f> RodConstraintSqrt::getJacobianDerivative()
 {
     Vec2f j_deriv1 = (m_p1->m_Velocity - m_p2->m_Velocity) * 2;
     Vec2f j_deriv2 = (m_p2->m_Velocity - m_p1->m_Velocity) * 2;

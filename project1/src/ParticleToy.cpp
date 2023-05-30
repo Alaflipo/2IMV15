@@ -3,6 +3,7 @@
 #include "Particle.h"
 #include "SpringForce.h"
 #include "RodConstraint.h"
+#include "RodConstraintSqrt.h"
 #include "GravityForce.h"
 #include "CircularWireConstraint.h"
 #include "imageio.h"
@@ -12,25 +13,27 @@
 #include <vector>
 #include <stdlib.h>
 #include <stdio.h>
-#if defined(__CYGWIN__) || defined(WIN32)
+#if defined(__CYGWIN__) || defined(WIN32) || __linux__
     #include <GL/glut.h>
 #else
     #include <GLUT/glut.h>
 #endif
 #include <LineConstraint.h>
 
+#include <Eigen/Dense>
+using namespace Eigen;
 #define PI 3.1415926535897932384626433832795
 
 /* macros */
 
 /* external definitions (from solver) */
-extern void simulation_step(std::vector<Particle*> pVector, float dt, int scheme);
+extern void simulation_step(std::vector<Particle*> pVector, float timeStep, int integrationScheme);
 
 /* global variables */
 
+
 static int N;
-static float dt, d;
-static int scheme; 
+static float d;
 static int dsim;
 static int dump_frames;
 static int frame_number;
@@ -46,26 +49,22 @@ static int mouse_shiftclick[3];
 static int omx, omy, mx, my;
 static int hmx, hmy;
 
-static bool activeMouseParticle;
-
 static GravityForce * gravity_force;
-
 static std::vector<SpringForce *> springForces;
 static std::vector<AngularSpringForce *> angularSpringForces;
 static std::vector<CircularWireConstraint *> circularWireConstraints;
 static std::vector<RodConstraint *> rodConstraints;
-
+static std::vector<RodConstraintSqrt *> rodConstraintsSqrt;
 static std::vector<Constraint *> constraints;
 static ConstraintSolver * constraintSolver;
+static std::vector<Particle *> endpoints;
 
-static std::vector<Particle*> endpoints; 
-
-static bool dude = false; 
-static bool particle_draw = true; 
-
-static bool gravity = true; 
+static bool activeMouseParticle;
 static int runInstance = 1;
-
+static bool gravity = true;
+static float timeStep = 0.01;
+static int integrationScheme = 1;
+static bool particle_draw = true; 
 
 /*
 ----------------------------------------------------------------------
@@ -76,14 +75,13 @@ free/clear/allocate simulation data
 static void free_data ( void )
 {
 	pVector.clear();
-    dude = false;
     particle_draw = true; 
 
 	springForces.clear();
     angularSpringForces.clear(); 
 	circularWireConstraints.clear();
 	rodConstraints.clear();
-    endpoints.clear();
+	endpoints.clear();
     if (gravity_force) {
 		delete gravity_force;
 		gravity_force = NULL;
@@ -103,109 +101,42 @@ static void clear_data ( void )
 
 static void init_system(void)
 {
-
-	if (runInstance == 0) {
+	if (runInstance == 1) {
 		const double dist = 0.2;
 		const Vec2f center(0.0, 0.0);
-		const Vec2f offset_x(dist, 0.0);
-        const Vec2f offset_y(0.0, dist);
+		const Vec2f offset(dist, 0.0);
 
-
-		pVector.push_back(new Particle(center + offset_x));
-		pVector.push_back(new Particle(center + offset_x + offset_x));
-        pVector.push_back(new Particle(center + offset_x + offset_x + offset_y));	
-        pVector.push_back(new Particle(center + offset_x + offset_x + offset_y + offset_x));	
-        pVector.push_back(new Particle(center + offset_x + offset_x + offset_x));		
-
-        springForces.push_back(new SpringForce(pVector[0], pVector[1], dist, 50.0, 100.0));
-
+		pVector.push_back(new Particle(center + offset));
+		pVector.push_back(new Particle(center + offset + offset));
+		pVector.push_back(new Particle(center + offset + offset + offset));
+		pVector.push_back(new Particle(center + offset + offset + offset + offset));
+		pVector.push_back(new Particle(center + offset + offset + offset + offset + offset));
+        
 		CircularWireConstraint * circularWireConstraint = new CircularWireConstraint(pVector[0], center, dist);
 		circularWireConstraints.push_back(circularWireConstraint);
 		constraints.push_back(circularWireConstraint);
 
-		RodConstraint * rodConstraint1 = new RodConstraint(pVector[1], pVector[2], dist);
-		rodConstraints.push_back(rodConstraint1);
-		constraints.push_back(rodConstraint1);
-        RodConstraint * rodConstraint2 = new RodConstraint(pVector[2], pVector[3], dist);
+		RodConstraint * rodConstraint = new RodConstraint(pVector[0], pVector[1], dist);
+		rodConstraints.push_back(rodConstraint);
+		constraints.push_back(rodConstraint);
+		RodConstraint * rodConstraint2 = new RodConstraint(pVector[1], pVector[2], dist);
 		rodConstraints.push_back(rodConstraint2);
 		constraints.push_back(rodConstraint2);
-        RodConstraint * rodConstraint3 = new RodConstraint(pVector[3], pVector[4], dist);
+		RodConstraint * rodConstraint3 = new RodConstraint(pVector[2], pVector[3], dist);
 		rodConstraints.push_back(rodConstraint3);
 		constraints.push_back(rodConstraint3);
-        RodConstraint * rodConstraint4 = new RodConstraint(pVector[4], pVector[1], dist);
-		rodConstraints.push_back(rodConstraint4);
-		constraints.push_back(rodConstraint4);
-        
-        
 
-    } else if (runInstance == 1) {
-        // hair simulation
-        dude = true; 
-        particle_draw = false; 
-        const int hairs = 50;
-        const float length = 0.5f; 
-        const int segments = 12;
-        const float width = 0.4;
-        float ks = 120.0f;
-        float kd = 1.5f;
-
-        for (int h = 0; h < hairs; h++) {
-            // Add particles for each hair 
-            for (int y = 0; y < (segments); y++) {
-                pVector.push_back(new Particle(Vec2f(
-                    width/hairs *h - 0.2, 
-                    0.5 + 0.4 * cos(PI/2.4/hairs * h) - (y * length/segments) 
-                )));
-            }
-
-            // Add springforces between each pair of particles 
-            for (int y = 0; y < segments - 1; y++) {
-                springForces.push_back(
-                    new SpringForce(
-                        pVector[h * segments + y],
-                        pVector[h * segments + y + 1],
-                        length/segments, ks, kd
-                    )
-                );
-            }
-
-            // Add angularspring forces between each triplet of particles 
-            for (int y = 0; y < segments - 2; y++) {
-                angularSpringForces.push_back(
-                    new AngularSpringForce(
-                        pVector[h * segments + y],
-                        pVector[h * segments + y + 1],
-                        pVector[h * segments + y + 2],
-                        0.5f, ks, kd
-                    )
-                );
-            }
-            
-            // Add constraints to the first particle of each hair 
-            float radius = 0.001f;
-            constraints.push_back(
-                new CircularWireConstraint(
-                    pVector[h * segments], 
-                    pVector[h * segments]->m_ConstructPos + Vec2f(-radius, 0.f), 
-                    radius
-                )
-            );
-
-            const double rail_dist = 0.001;
-            const Vec2f rail_start = Vec2f(-1, pVector[h*segments]->m_Position[1] + rail_dist);
-            const Vec2f rail_end = Vec2f(1, pVector[h*segments]->m_Position[1] + rail_dist);
-            constraints.push_back(new LineConstraint(pVector[h * segments], rail_start, rail_end, rail_dist));
-
-            endpoints.push_back(pVector[((h+1) * segments) - 1]);
-        }
-    
-    
-    } else if (runInstance == 2) {
+		RodConstraintSqrt * rodConstraintSqrt = new RodConstraintSqrt(pVector[3], pVector[4], dist);
+		rodConstraintsSqrt.push_back(rodConstraintSqrt);
+		constraints.push_back(rodConstraintSqrt);
+	}
+	else if (runInstance == 2) {
+		const float ks = 500.0;
+		const float kd = 4;
 		const int clothSize = 10;
 		const double dist = 0.1;
 		const Vec2f center(0.0, 0.0);
 
-		
 		for (int i = 0; i < clothSize; i++) {
 			for (int j = 0; j < clothSize; j++) {
 				Vec2f offset((i - (clothSize / 2)) * dist, (j - (clothSize / 2)) * dist);
@@ -213,28 +144,101 @@ static void init_system(void)
 			}
 		}
 
-		const Vec2f offset(0, dist / 5);
-
-		CircularWireConstraint * circularWireConstraint = new CircularWireConstraint(pVector[9], pVector[9]->m_ConstructPos + offset, dist / 5);
-		circularWireConstraints.push_back(circularWireConstraint);
-		constraints.push_back(circularWireConstraint);
-		CircularWireConstraint * circularWireConstraint2 = new CircularWireConstraint(pVector[99], pVector[99]->m_ConstructPos + offset, dist / 5);
-		circularWireConstraints.push_back(circularWireConstraint2);
-		constraints.push_back(circularWireConstraint2);
-
-
 		for (int i = 0; i < clothSize; i++) {
 			for (int j = 0; j < clothSize; j++) {
 				if (i != clothSize - 1) {
-					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 10], dist, 50.0, 1.0));
+					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 10], dist, ks, kd));
 				}
 
 				if (j != clothSize -1) {
-					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 1], dist, 50.0, 1.0));
+					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 1], dist, ks, kd));
 				}
 			}
 		}
+	} else if (runInstance == 3) {
+		// hair simulation 
+        const int hairs = 10; 
+        const float length = 0.5f;  
+        const int segments = 7; 
+        const float width = 0.4; 
+        float ks = 120.0f; 
+        float kd = 1.5f; 
+ 
+        for (int h = 0; h < hairs; h++) { 
+            // Add particles for each hair  
+            for (int y = 0; y < (segments); y++) { 
+                pVector.push_back(new Particle(Vec2f( 
+                    width/hairs *h - 0.2,  
+                    0.5 + 0.4 * cos(PI/2.4/hairs * h) - (y * length/segments)  
+                ))); 
+            } 
+ 
+            // Add springforces between each pair of particles  
+            for (int y = 0; y < segments - 1; y++) { 
+                springForces.push_back( 
+                    new SpringForce( 
+                        pVector[h * segments + y], 
+                        pVector[h * segments + y + 1], 
+                        length/segments, ks, kd 
+                    ) 
+                ); 
+            } 
+ 
+            // Add angularspring forces between each triplet of particles  
+            for (int y = 0; y < segments - 2; y++) { 
+                angularSpringForces.push_back( 
+                    new AngularSpringForce( 
+                        pVector[h * segments + y], 
+                        pVector[h * segments + y + 1], 
+                        pVector[h * segments + y + 2], 
+                        0.5f, ks, kd 
+                    ) 
+                ); 
+            } 
+             
+            // Add constraints to the first particle of each hair  
+            float radius = 0.001f; 
+            constraints.push_back( 
+                new CircularWireConstraint( 
+                    pVector[h * segments],  
+                    pVector[h * segments]->m_ConstructPos + Vec2f(-radius, 0.f),  
+                    radius 
+                ) 
+            ); 
+ 
+            const double rail_dist = 0.001; 
+            const Vec2f rail_start = Vec2f(-1, pVector[h*segments]->m_Position[1] + rail_dist); 
+            const Vec2f rail_end = Vec2f(1, pVector[h*segments]->m_Position[1] + rail_dist); 
+            constraints.push_back(new LineConstraint(pVector[h * segments], rail_start, rail_end, rail_dist)); 
+ 
+            endpoints.push_back(pVector[((h+1) * segments) - 1]); 
+        } 
+	} else if (runInstance == 4) {
+		const double dist = 0.2;
+		const Vec2f center1(-0.5, 0.5);
+		const Vec2f center2(0.5, 0.5);
+		const float ks = 2;
+		const float kd = 1;
 
+		pVector.push_back(new Particle(center1));
+		pVector.push_back(new Particle(center2));
+		pVector.push_back(new Particle(center1 + Vec2f(0, -0.1)));
+		pVector.push_back(new Particle(center2 + Vec2f(0, -0.1)));
+
+        
+		CircularWireConstraint * circularWireConstraint = new CircularWireConstraint(pVector[0], Vec2f(-0.6, 0.5), 0.1);
+		circularWireConstraints.push_back(circularWireConstraint);
+		constraints.push_back(circularWireConstraint);
+		CircularWireConstraint * circularWireConstraint2 = new CircularWireConstraint(pVector[1], Vec2f(0.6, 0.5), 0.1);
+		circularWireConstraints.push_back(circularWireConstraint2);
+		constraints.push_back(circularWireConstraint2);
+
+		springForces.push_back(new SpringForce(pVector[0], pVector[2], dist, ks, kd));
+		springForces.push_back(new SpringForce(pVector[1], pVector[3], dist, ks, kd));
+
+		RodConstraint * rodConstraint = new RodConstraint(pVector[2], pVector[3], 1);
+		rodConstraints.push_back(rodConstraint);
+		constraints.push_back(rodConstraint);
 	}
 
 	if (constraints.size() > 0) {
@@ -245,6 +249,158 @@ static void init_system(void)
 		gravity_force = new GravityForce(pVector); 
 	}	
 }
+
+void implicitEulerStep() 
+{
+	int dimensions = 2;
+	
+	for (SpringForce * springForce: springForces) {
+		std::vector<Particle *> particles = springForce->getParticles();
+		Vec2f dxVec = ((particles[0]->m_Position) - (particles[1]->m_Position));
+		VectorXf dx = VectorXf::Zero(dimensions);
+		dx[0] = ((particles[0]->m_Position) - (particles[1]->m_Position))[0];
+		dx[1] = ((particles[0]->m_Position) - (particles[1]->m_Position))[1];
+		MatrixXf I = MatrixXf::Identity(dimensions, dimensions);
+		MatrixXf dxtdx = MatrixXf::Zero(dx.size(), dx.size());
+		dxtdx = (dx * (dx.transpose()));
+
+		double l = sqrt(dxVec * dxVec);
+		if (l != 0) {
+			l = 1 / l;
+		}
+
+		dxtdx = dxtdx * (l * l);
+		springForce->Jx = (dxtdx + ((I - dxtdx) * (1 - (springForce->m_dist * l)))) * (springForce->m_ks);
+		springForce->Jv = MatrixXf::Identity(dimensions, dimensions);
+		springForce->Jv *= springForce->m_kd;
+	}
+}
+
+static void MultiplyDf(std::vector<VectorXf>  src, std::vector<VectorXf> dst, bool jacobianPosition) 
+{
+	for (int i = 0; i < pVector.size(); i++) {
+		VectorXf tmp = VectorXf::Zero(2);
+		dst[i] = tmp;
+	}
+	for (SpringForce* springForce: springForces) {
+		VectorXf temp = VectorXf::Zero(2);
+		std::vector<Particle*> particles = springForce->getParticles();
+		std::vector<int> particleIndices = {0, 0};
+		for (int i = 0; i < pVector.size(); i++) {
+			if (pVector[i] == particles[0]) {
+				particleIndices[0] = i;
+			} else if (pVector[i] == particles[1]) {
+				particleIndices[1] = i;
+			}
+		}
+		if (jacobianPosition) {
+			temp = springForce->Jx * (src[particleIndices[0]] - src[particleIndices[1]]);
+		} else {
+			temp = springForce->Jv * (src[particleIndices[0]] - src[particleIndices[1]]);
+		}
+		
+		dst[particleIndices[0]] -= temp;
+		dst[particleIndices[1]] += temp;
+	}
+}
+
+void solveLinearSystem(float dt) 
+{
+	implicitEulerStep();
+
+	MatrixXf A = MatrixXf::Zero(2 * pVector.size(), 2 * pVector.size());
+	MatrixXf M = MatrixXf::Zero(2 * pVector.size(), 2 * pVector.size());
+	for (int i = 0; i < pVector.size(); i++) {
+		for (int j = 0; j < 2; j++) {
+			M(i * 2 + j, i * 2 + j) = pVector[i]->m_Mass;
+		}
+	}
+
+	VectorXf b = VectorXf::Zero(2 * pVector.size());
+	VectorXf f0 = VectorXf::Zero(2 * pVector.size());
+	std::vector<VectorXf> x0;
+	std::vector<VectorXf> v0; std::vector<VectorXf> dfdxv0(pVector.size(), VectorXf()); 
+	std::vector<VectorXf> dtVec; std::vector<VectorXf> dfdvdt(pVector.size(), VectorXf());
+	std::vector<VectorXf> dt2Vec; std::vector<VectorXf> dfdxdt2(pVector.size(), VectorXf());
+
+	for (int i = 0; i < pVector.size(); i++) {
+		VectorXf tmp = VectorXf::Zero(2);
+		tmp[0] = pVector[i]->get_state()[0][0];
+		tmp[1] = pVector[i]->get_state()[0][1];
+		x0.push_back(tmp);
+		VectorXf tmp2 = VectorXf::Zero(2);
+		tmp2[0] = pVector[i]->get_state()[1][0];
+		tmp2[1] = pVector[i]->get_state()[1][1];
+		v0.push_back(tmp2);
+		f0[i * 2] = pVector[i]->derivEval()[1][0];
+		f0[i * 2 + 1] = pVector[i]->derivEval()[1][1];
+		VectorXf tmp3 = VectorXf::Zero(2);
+		tmp3[0] = dt;
+		tmp3[1] = dt;
+		dtVec.push_back(tmp3);
+		VectorXf tmp4 = VectorXf::Zero(2);
+		tmp4[0] = dt * dt;
+		tmp4[1] = dt * dt;
+		dt2Vec.push_back(tmp4);
+	}
+	
+	MultiplyDf(v0, dfdxv0, true);
+	MultiplyDf(dtVec, dfdvdt, false);
+	MultiplyDf(dt2Vec, dfdxdt2, true);
+
+	VectorXf dfdxv0Vec = VectorXf::Zero(2 * pVector.size());
+	MatrixXf dfdvdtMat = MatrixXf::Zero(2 * pVector.size(), 2 * pVector.size());
+	MatrixXf dfdxdt2Mat = MatrixXf::Zero(2 * pVector.size(), 2 * pVector.size());
+
+	for (int i = 0; i < dfdxv0.size(); i++) {
+		for (int j = 0; j < 2; j++) {
+			if (dfdxv0[i] == VectorXf()) {
+				dfdxv0Vec[i * 2 + j] = 0;
+			} else {
+				dfdxv0Vec[i * 2 + j] = dfdxv0[i][j];
+			}
+
+			if (dfdvdt[i] == VectorXf()) {
+				dfdvdtMat(i * 2 + j, i * 2 + j) = 0;
+			} else {
+				dfdvdtMat(i * 2 + j, i * 2 + j) = dfdvdt[i][j];
+			}
+
+			if (dfdxdt2[i] == VectorXf()) {
+				dfdxdt2Mat(i * 2 + j, i * 2 + j) = 0;
+			} else {
+				dfdxdt2Mat(i * 2 + j, i * 2 + j) = dfdxdt2[i][j];
+			}			
+		}
+	}
+
+	b = (dt *(f0 + (dt * dfdxv0Vec)));
+	A = M - (dfdvdtMat) - (dfdxdt2Mat);
+
+	ConjugateGradient<MatrixXf, Lower|Upper> cg;
+	cg.compute(A);
+	Eigen::Solve<Eigen::ConjugateGradient<Eigen::MatrixXf, 3>, Eigen::VectorXf> dv = cg.solve(b);
+	std::vector<VectorXf> dx;
+
+	for (int i = 0; i < dv.size() / 2; i++) {
+		VectorXf tmpVec = VectorXf::Zero(2);
+		tmpVec[0] = dv[i * 2];
+		tmpVec[1] = dv[i * 2 + 1];
+		dx.push_back(tmpVec);
+	}
+
+	for (int i = 0; i < v0.size(); i++) {
+		dx[i] += v0[i];
+		dx[i] *= dt;
+	}
+
+	for (int i = 0; i < pVector.size(); i++) {
+		Vec2f xNew = Vec2f(x0[i][0] + dx[i][0], x0[i][1] + dx[i][1]);
+		Vec2f vNew = Vec2f(v0[i][0] + dv[i * 2], v0[i][1] + dv[i * 2 + 1]);
+		pVector[i]->set_state(xNew, vNew);
+	}
+}
+
 
 /*
 ----------------------------------------------------------------------
@@ -323,38 +479,6 @@ static void draw_constraints ( void )
 	}
 }
 
-static void draw_dude (void) {
-    float head_radius = 0.4f;
-    float eye_radius = 0.05f; 
-    float eye_offset = 0.1f; 
-    Vec2f center = Vec2f(-0.2, 0.5); 
-    // head 
-    glBegin(GL_LINE_LOOP);
-    glColor3f(0.0,1.0,0.0); 
-    for (int i=80; i<385; i=i+9)
-    {
-        float degInRad = i*PI/180;
-        glVertex2f(center[0] + cos(degInRad)*head_radius,center[1] + sin(degInRad)*head_radius);
-    }
-    glEnd();
-    // eye 
-    glBegin(GL_LINE_LOOP);
-    glColor3f(0.0,1.0,0.0); 
-    for (int i=0; i<360; i=i+18)
-    {
-        float degInRad = i*PI/180;
-        glVertex2f(center[0] - eye_offset - cos(degInRad) * eye_radius, 
-                   center[1] + eye_offset + sin(degInRad) * eye_radius);
-    }
-    glEnd();
-    // mouth 
-    glBegin(GL_LINES);
-    glColor3f(1.0,0.0,0.0); 
-    glVertex2f(center[0] - 0.35, center[1] - 0.2);
-    glVertex2f(center[0] - 0.35 + 0.2, center[1] - 0.2);
-    glEnd();
-}
-
 /*
 ----------------------------------------------------------------------
 relates mouse movements to particle toy construction
@@ -382,41 +506,60 @@ static void get_from_UI ()
 	if ( mouse_down[0] ) {
 		Vec2f position(x, y);
 		if (!activeMouseParticle) {
-			activeMouseParticle = true;
-			pVector.push_back(new Particle(position));
-            if (runInstance == 1) {
-                for (Particle * endpoint: endpoints) {
-                    springForces.push_back(new SpringForce(pVector[pVector.size() - 1], endpoint, 0.1 , 50.0, 1.0)); 
-                }
+
+			if (runInstance == 3) { 
+				activeMouseParticle = true;
+				pVector.push_back(new Particle(position)); 
+                for (Particle * endpoint: endpoints) { 
+                    springForces.push_back(new SpringForce(pVector[pVector.size() - 1], endpoint, 0.1 , 15.0, 1.0));  
+                } 
             } else {
-                springForces.push_back(new SpringForce(pVector[pVector.size() - 1], pVector[pVector.size() - 2], 0.1 , 50.0, 1.0));
-            }
+				Particle* closestParticle = NULL; 
+				float minDistance = INFINITY; 
+	
+				for (int i = 0; i < pVector.size(); i++) { 
+					Particle* part = pVector[i]; 
+					Vec2f diff = part->m_Position - position; 
+					float dist = sqrt(diff * diff); 
+					if (dist < minDistance) { 
+						minDistance = dist; 
+						closestParticle = part; 
+					}; 
+				} 
+	
+				if (closestParticle) { 
+					activeMouseParticle = true; 
+					pVector.push_back(new Particle(position)); 
+					springForces.push_back(new SpringForce(pVector[pVector.size() - 1], closestParticle, minDistance, 50.0, 1.0)); 
+				} 
+			}
 		} else {
 			pVector[pVector.size() - 1]->m_Position = position;
 		}
 	}
 
-	if ( mouse_down[2] ) {
+	if (mouse_down[2]) {
 	}
 
 	hi = (int)((       hmx /(float)win_x)*N);
 	hj = (int)(((win_y-hmy)/(float)win_y)*N);
 
 	
-	if( mouse_release[0] ) {
-		if (activeMouseParticle) {
-			activeMouseParticle = false;
-			pVector.pop_back();
-            if (runInstance == 1) {
-                for (Particle * endpoint: endpoints) {
-                    springForces.pop_back(); 
-                }
-            } else {
-                springForces.pop_back(); 
-            }
-		}
-		mouse_release[0] = false;
-	}
+	if (mouse_release[0]) { 
+		if (activeMouseParticle) { 
+			activeMouseParticle = false; 
+			pVector.pop_back(); 
+			if (runInstance == 3) {
+				for (int i = 0; i < endpoints.size(); i++) {
+					springForces.pop_back();
+				}
+			} else {
+				springForces.pop_back(); 
+			}
+			
+		} 
+		mouse_release[0] = false; 
+	} 
 
 	omx = mx;
 	omy = my;
@@ -439,18 +582,23 @@ GLUT callback routines
 
 static void key_func ( unsigned char key, int x, int y )
 {
+	// std::cout << "Key pressed: " << key << std::endl;
 	switch ( key )
 	{
+	case 'a':
+	case 'A': 
+		particle_draw = !particle_draw;
+		std::cout << (particle_draw ? "Enable drawing of particles\n" : "Disable drawing of particles\n");
+		break;
 	case 'c':
 	case 'C':
 		clear_data ();
+		std::cout << "Reset all positions, velocities, accelerations and forces\n";
 		break;
-
 	case 'd':
 	case 'D':
 		dump_frames = !dump_frames;
 		break;
-
 	case 'q':
 	case 'Q':
 		free_data ();
@@ -458,45 +606,80 @@ static void key_func ( unsigned char key, int x, int y )
 		break;
     case ' ':
         dsim = !dsim;
-        break;
-    case '0':
-        free_data();
-        runInstance = 0;
-        init_system();
+		std::cout << (dsim ? "Started animation\n" : "Paused animation\n");
         break;
     case '1':
         free_data();
-        runInstance = 0;
+        runInstance = 1;
+		particle_draw = true;
+		dsim = false;
+		std::cout << "Loaded basic scene\n";
         init_system();
         break;
-
     case '2':
         free_data();
-        runInstance = 1;
+        runInstance = 2;
+		particle_draw = true;
+		dsim = false;
+		std::cout << "Loaded cloth scene\n";
         init_system();
         break;
-
     case '3':
         free_data();
-        runInstance = 2;
+        runInstance = 3;
+		particle_draw = false;
+		dsim = false;
+		std::cout << "Loaded hair scene\n";
         init_system();
+        break;
+	case '4':
+		free_data();
+        runInstance = 4;
+		particle_draw = true;
+		dsim = false;
+		std::cout << "Loaded constraint scene\n";
+        init_system();
+        break;
+    case 'u':
+    case 'U':
+        integrationScheme = 0;
+		std::cout << "Set integration scheme to Explicit Euler\n";
         break;
     case 'i':
     case 'I':
-        scheme = 0;
+        integrationScheme = 1;
+		std::cout << "Set integration scheme to Midpoint\n";
         break;
     case 'o':
     case 'O':
-        scheme = 1;
+        integrationScheme = 2;
+		std::cout << "Set integration scheme to Runge-Kutta 4\n";
         break;
-    case 'p':
+	case 'p':
     case 'P':
-        scheme = 2;
+        integrationScheme = 3;
+		std::cout << "Set integration scheme to Implicit Euler\n";
         break;
     case 'g':
     case 'G':
         gravity = !gravity;
+		std::cout << (gravity ? "Enabled gravity\n" : "Disabled gravity\n");
         break;
+	case 'w':
+	case 'W':
+		timeStep += 0.003;
+		std::cout << "Time step increased by 0.003 to: " << timeStep << std::endl;
+		break;
+	case 's':
+	case 'S':
+		if (timeStep > 0.003) {
+			timeStep -= 0.003;
+			std::cout << "Time step decreased by 0.003 to: " << timeStep << std::endl;
+			break;
+		} else {
+			std::cout << "Time step too small to decrease: " << timeStep << std::endl;
+		}
+
     }
    
 }
@@ -535,31 +718,40 @@ static void derivEval() {
 
 	// Calculate all forces working on all particles
 	for (SpringForce * springForce: springForces) {
-		springForce->calculateForce();
+		springForce->calculateForce((integrationScheme == 3));
 	}
 
 	for (AngularSpringForce * angularSpringForce: angularSpringForces) {
 		angularSpringForce->calculateForce();
 	}
-	gravity_force->calculateGravityForce(); 
+	
+	if (gravity_force && gravity) {
+		gravity_force->calculateGravityForce(); 
+	}
 
-	// Calculate all constraint forces working on all particles
-	// for (CircularWireConstraint * circularWireConstraint: circularWireConstraints) {
-	// 	circularWireConstraint->calculateConstraintForce();
-	// }x
+	// Calculate all constraint forces if applicable
 	if (constraintSolver) {
 		constraintSolver->calculateConstraintForce();
 	}
-    
-    
-	// Run a step in the simulation 0 = Euler, 1 = Midpoint, 2 = Runge-Kutta
-	simulation_step( pVector, dt, scheme);
+
+	// Run a step in the simulation 0 = Euler, 1 = Midpoint, 2 = Runge-Kutta, 3 = Implicit Euler
+	if (!(integrationScheme == 3)) {
+		simulation_step( pVector, timeStep, integrationScheme);
+	} else {
+		solveLinearSystem(timeStep);
+	}
+
+	if (runInstance == 2) {
+		pVector[9]->reset();		// Fix top left point
+		pVector[99]->reset();		// Fix top right point
+	}
 }
+
+
 
 static void idle_func ( void )
 {
 	if ( dsim ) {
-        // simulation_step( pVector, dt );
         get_from_UI();derivEval();
     } else {
         get_from_UI();remap_GUI();
@@ -569,12 +761,46 @@ static void idle_func ( void )
 	glutPostRedisplay ();
 }
 
+static void drawHead () {
+    float head_radius = 0.4f;
+    float eye_radius = 0.05f; 
+    float eye_offset = 0.1f; 
+    Vec2f center = Vec2f(-0.2, 0.5); 
+    // head 
+    glBegin(GL_LINE_LOOP);
+    glColor3f(0.0,1.0,0.0); 
+    for (int i=80; i<385; i=i+9)
+    {
+        float degInRad = i*PI/180;
+        glVertex2f(center[0] + cos(degInRad)*head_radius,center[1] + sin(degInRad)*head_radius);
+    }
+    glEnd();
+    // eye 
+    glBegin(GL_LINE_LOOP);
+    glColor3f(0.0,1.0,0.0); 
+    for (int i=0; i<360; i=i+18)
+    {
+        float degInRad = i*PI/180;
+        glVertex2f(center[0] - eye_offset - cos(degInRad) * eye_radius, 
+                   center[1] + eye_offset + sin(degInRad) * eye_radius);
+    }
+    glEnd();
+    // mouth 
+    glBegin(GL_LINES);
+    glColor3f(1.0,0.0,0.0); 
+    glVertex2f(center[0] - 0.35, center[1] - 0.2);
+    glVertex2f(center[0] - 0.35 + 0.2, center[1] - 0.2);
+    glEnd();
+}
+
 static void display_func ( void )
 {
 	pre_display ();
+	
+	if (runInstance == 3) {
+		drawHead();
+	}
 
-    if (dude) 
-        draw_dude(); 
 	draw_forces();
 	draw_constraints();
     if (particle_draw)
@@ -630,24 +856,23 @@ int main ( int argc, char ** argv )
 
 	if ( argc == 1 ) {
 		N = 64;
-		dt = 0.010;		// Simulation speed, default = 0.1
 		d = 5.f;
-        scheme = 2; 
-		fprintf ( stderr, "Using defaults : N=%d dt=%g d=%g\n",
-			N, dt, d );
+		fprintf ( stderr, "Using defaults : N=%d d=%g\n",
+			N, d );
 	} else {
 		N = atoi(argv[1]);
-		dt = atof(argv[2]);
 		d = atof(argv[3]);
 	}
 
 	printf ( "\n\nHow to use this application:\n\n" );
 	printf ( "\t Toggle construction/simulation display with the spacebar key\n" );
+	printf ( "\t Reset simulation to initial state the 'c' key\n" );
 	printf ( "\t Dump frames by pressing the 'd' key\n" );
-    printf ( "\t Change scenes by pressing the number keys\n" );
-    printf ( "\t Change integration scheme by pressing 'i'(=euler), 'o'(=midpoint), 'p'(=rungekutta) \n" );
+	printf ( "\t Increase and decrease time step by 0.01 by pressing the 'w' and 's' keys respectively\n" );
+    printf ( "\t Change scenes by pressing the number keys '1', '2', '3' or '4')\n" );
+    printf ( "\t Change integration scheme by pressing 'u'(=Explicit Euler) 'i'(=Midpoint), 'o'(=Runge-Kutta 4), 'p'(=Implicit Euler) \n" );
+	printf ( "\t Toggle the drawing of the particles as squares by pressing 'a'\n" );
 	printf ( "\t Quit by pressing the 'q' key\n" );
-    
 
 	dsim = 0;
 	dump_frames = 0;

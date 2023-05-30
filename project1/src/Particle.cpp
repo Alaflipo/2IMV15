@@ -1,5 +1,5 @@
 #include "Particle.h"
-#if defined(__CYGWIN__) || defined(WIN32)
+#if defined(__CYGWIN__) || defined(WIN32) || __linux__
     #include <GL/glut.h>
 #else
     #include <GLUT/glut.h>

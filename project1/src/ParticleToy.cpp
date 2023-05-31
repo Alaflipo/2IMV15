@@ -5,6 +5,7 @@
 #include "RodConstraint.h"
 #include "RodConstraintSqrt.h"
 #include "GravityForce.h"
+#include "WindForce.h"
 #include "CircularWireConstraint.h"
 #include "imageio.h"
 #include "ConstraintSolver.h"
@@ -49,7 +50,8 @@ static int mouse_shiftclick[3];
 static int omx, omy, mx, my;
 static int hmx, hmy;
 
-static GravityForce * gravity_force;
+static GravityForce * gravityForce;
+static WindForce * windForce;
 static std::vector<SpringForce *> springForces;
 static std::vector<AngularSpringForce *> angularSpringForces;
 static std::vector<CircularWireConstraint *> circularWireConstraints;
@@ -59,13 +61,15 @@ static std::vector<Constraint *> constraints;
 static ConstraintSolver * constraintSolver;
 static std::vector<Particle *> endpoints;
 
-static bool activeMouseParticle;
 static int runInstance = 1;
-static bool gravity = true;
+static int integrationScheme = 0;
 static float timeStep = 0.01;
-static int integrationScheme = 1;
+static bool gravity = true;
+static bool wind = false;
 static bool particle_draw = true; 
+static bool activeMouseParticle = false;
 static bool hairmode = true; 
+
 
 /*
 ----------------------------------------------------------------------
@@ -76,16 +80,19 @@ free/clear/allocate simulation data
 static void free_data ( void )
 {
 	pVector.clear();
-    particle_draw = true; 
 
 	springForces.clear();
     angularSpringForces.clear(); 
 	circularWireConstraints.clear();
 	rodConstraints.clear();
 	endpoints.clear();
-    if (gravity_force) {
-		delete gravity_force;
-		gravity_force = NULL;
+    if (gravityForce) {
+		delete gravityForce;
+		gravityForce = NULL;
+	}
+	if (windForce) {
+		delete windForce;
+		windForce = NULL;
 	}
 
 	constraints.clear();
@@ -247,9 +254,8 @@ static void init_system(void)
 		constraintSolver = new ConstraintSolver(pVector, constraints);
 	}
 
-	if (gravity) {
-		gravity_force = new GravityForce(pVector); 
-	}	
+	gravityForce = new GravityForce(pVector); 
+	windForce = new WindForce(pVector);
 }
 
 void implicitEulerStep() 
@@ -667,25 +673,28 @@ static void key_func ( unsigned char key, int x, int y )
         gravity = !gravity;
 		std::cout << (gravity ? "Enabled gravity\n" : "Disabled gravity\n");
         break;
+	case 'e':
+	case 'E':
+		wind = !wind;
+		std::cout << (wind ? "Enabled left to right wind\n" : "Disabled left to right wind\n");
+        break;
     case 'h':
 	case 'H':
         free_data();
 		hairmode = !hairmode;
 		std::cout << (hairmode ? "Normal hair enabled\n" : "Curly hair enabled\n");
-        particle_draw = false;
-        dsim = false;
         init_system();
 		break;
 	case 'w':
 	case 'W':
-		timeStep += 0.003;
-		std::cout << "Time step increased by 0.003 to: " << timeStep << std::endl;
+		timeStep += 0.001;
+		std::cout << "Time step increased by 0.001 to: " << timeStep << std::endl;
 		break;
 	case 's':
 	case 'S':
-		if (timeStep > 0.003) {
-			timeStep -= 0.003;
-			std::cout << "Time step decreased by 0.003 to: " << timeStep << std::endl;
+		if (timeStep > 0.001) {
+			timeStep -= 0.001;
+			std::cout << "Time step decreased by 0.001 to: " << timeStep << std::endl;
 			break;
 		} else {
 			std::cout << "Time step too small to decrease: " << timeStep << std::endl;
@@ -736,8 +745,12 @@ static void derivEval() {
 		angularSpringForce->calculateForce();
 	}
 	
-	if (gravity_force && gravity) {
-		gravity_force->calculateGravityForce(); 
+	if (gravityForce && gravity) {
+		gravityForce->calculateGravityForce(); 
+	}
+
+	if (windForce && wind) {
+		windForce->calculateWindForce(); 
 	}
 
 	// Calculate all constraint forces if applicable
@@ -879,7 +892,9 @@ int main ( int argc, char ** argv )
 	printf ( "\t Toggle construction/simulation display with the spacebar key\n" );
 	printf ( "\t Reset simulation to initial state the 'c' key\n" );
 	printf ( "\t Dump frames by pressing the 'd' key\n" );
-	printf ( "\t Increase and decrease time step by 0.01 by pressing the 'w' and 's' keys respectively\n" );
+	printf ( "\t Toggle gravity by pressing the 'g' key\n" );
+	printf ( "\t Toggle wind by pressing the 'e' key\n" );
+	printf ( "\t Increase and decrease time step by 0.001 by pressing the 'w' and 's' keys respectively\n" );
     printf ( "\t Change scenes by pressing the number keys '1', '2', '3' or '4')\n" );
     printf ( "\t Change integration scheme by pressing 'u'(=Explicit Euler) 'i'(=Midpoint), 'o'(=Runge-Kutta 4), 'p'(=Implicit Euler) \n" );
 	printf ( "\t Toggle the drawing of the particles as squares by pressing 'a'\n" );

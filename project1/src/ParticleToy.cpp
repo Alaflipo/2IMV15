@@ -225,31 +225,50 @@ static void init_system(void)
             endpoints.push_back(pVector[((h+1) * segments) - 1]); 
         } 
 	} else if (runInstance == 2) {
-		const double dist = 0.2;
+		const double dist = 0.1;
 		const Vec2f center1(-0.5, 0.5);
-		const Vec2f center2(0.5, 0.5);
+		const Vec2f center2(0.1, 0.5);
+		const Vec2f offset(0.1, 0.0);
 		const float ks = 2;
 		const float kd = 1;
 
 		pVector.push_back(new Particle(center1));
+		pVector.push_back(new Particle(center1 + offset));
+		pVector.push_back(new Particle(center1 + offset + offset));
+		pVector.push_back(new Particle(center1 + offset + offset + offset));
 		pVector.push_back(new Particle(center2));
-		pVector.push_back(new Particle(center1 + Vec2f(0, -0.1)));
-		pVector.push_back(new Particle(center2 + Vec2f(0, -0.1)));
+		pVector.push_back(new Particle(center2 + offset));
+		pVector.push_back(new Particle(center2 + offset + offset));
+		pVector.push_back(new Particle(center2 + offset + offset + offset));
 
-        
 		CircularWireConstraint * circularWireConstraint = new CircularWireConstraint(pVector[0], Vec2f(-0.6, 0.5), 0.1);
 		circularWireConstraints.push_back(circularWireConstraint);
 		constraints.push_back(circularWireConstraint);
-		CircularWireConstraint * circularWireConstraint2 = new CircularWireConstraint(pVector[1], Vec2f(0.6, 0.5), 0.1);
+		CircularWireConstraint * circularWireConstraint2 = new CircularWireConstraint(pVector[4], Vec2f(0.0, 0.5), 0.1);
 		circularWireConstraints.push_back(circularWireConstraint2);
 		constraints.push_back(circularWireConstraint2);
-
-		springForces.push_back(new SpringForce(pVector[0], pVector[2], dist, ks, kd));
-		springForces.push_back(new SpringForce(pVector[1], pVector[3], dist, ks, kd));
-
-		RodConstraint * rodConstraint = new RodConstraint(pVector[2], pVector[3], 1);
+		
+		RodConstraint * rodConstraint = new RodConstraint(pVector[0], pVector[1], 0.1);
 		rodConstraints.push_back(rodConstraint);
 		constraints.push_back(rodConstraint);
+		rodConstraint = new RodConstraint(pVector[1], pVector[2], 0.1);
+		rodConstraints.push_back(rodConstraint);
+		constraints.push_back(rodConstraint);
+		rodConstraint = new RodConstraint(pVector[2], pVector[3], 0.1);
+		rodConstraints.push_back(rodConstraint);
+		constraints.push_back(rodConstraint);
+		
+		
+		RodConstraintSqrt * rodConstraintSqrt = new RodConstraintSqrt(pVector[4], pVector[5], 0.1);
+		rodConstraintsSqrt.push_back(rodConstraintSqrt);
+		constraints.push_back(rodConstraintSqrt);
+		rodConstraintSqrt = new RodConstraintSqrt(pVector[5], pVector[6], 0.1);
+		rodConstraintsSqrt.push_back(rodConstraintSqrt);
+		constraints.push_back(rodConstraintSqrt);
+		rodConstraintSqrt = new RodConstraintSqrt(pVector[6], pVector[7], 0.1);
+		rodConstraintsSqrt.push_back(rodConstraintSqrt);
+		constraints.push_back(rodConstraintSqrt);
+			
 	} else if (runInstance == 4) {
 		const float ks = 500.0;
 		const float kd = 4;

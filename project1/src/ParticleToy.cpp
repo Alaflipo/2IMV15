@@ -65,6 +65,7 @@ static bool gravity = true;
 static float timeStep = 0.01;
 static int integrationScheme = 1;
 static bool particle_draw = true; 
+static bool hairmode = true; 
 
 /*
 ----------------------------------------------------------------------
@@ -157,12 +158,13 @@ static void init_system(void)
 		}
 	} else if (runInstance == 3) {
 		// hair simulation 
-        const int hairs = 10; 
+        const int hairs = 20; 
         const float length = 0.5f;  
-        const int segments = 7; 
+        const int segments = 11; 
         const float width = 0.4; 
         float ks = 120.0f; 
         float kd = 1.5f; 
+        int spring_amount = (hairmode ? 1 : 2);
  
         for (int h = 0; h < hairs; h++) { 
             // Add particles for each hair  
@@ -185,7 +187,7 @@ static void init_system(void)
             } 
  
             // Add angularspring forces between each triplet of particles  
-            for (int y = 0; y < segments - 2; y++) { 
+            for (int y = 0; y < segments - 2; y+=spring_amount) { 
                 angularSpringForces.push_back( 
                     new AngularSpringForce( 
                         pVector[h * segments + y], 
@@ -665,6 +667,15 @@ static void key_func ( unsigned char key, int x, int y )
         gravity = !gravity;
 		std::cout << (gravity ? "Enabled gravity\n" : "Disabled gravity\n");
         break;
+    case 'h':
+	case 'H':
+        free_data();
+		hairmode = !hairmode;
+		std::cout << (hairmode ? "Normal hair enabled\n" : "Curly hair enabled\n");
+        particle_draw = false;
+        dsim = false;
+        init_system();
+		break;
 	case 'w':
 	case 'W':
 		timeStep += 0.003;
@@ -768,7 +779,7 @@ static void drawHead () {
     Vec2f center = Vec2f(-0.2, 0.5); 
     // head 
     glBegin(GL_LINE_LOOP);
-    glColor3f(0.0,1.0,0.0); 
+    glColor3f(1.0,1.0,0.0); 
     for (int i=80; i<385; i=i+9)
     {
         float degInRad = i*PI/180;
@@ -777,7 +788,7 @@ static void drawHead () {
     glEnd();
     // eye 
     glBegin(GL_LINE_LOOP);
-    glColor3f(0.0,1.0,0.0); 
+    glColor3f(1.0,1.0,0.0); 
     for (int i=0; i<360; i=i+18)
     {
         float degInRad = i*PI/180;
@@ -872,6 +883,7 @@ int main ( int argc, char ** argv )
     printf ( "\t Change scenes by pressing the number keys '1', '2', '3' or '4')\n" );
     printf ( "\t Change integration scheme by pressing 'u'(=Explicit Euler) 'i'(=Midpoint), 'o'(=Runge-Kutta 4), 'p'(=Implicit Euler) \n" );
 	printf ( "\t Toggle the drawing of the particles as squares by pressing 'a'\n" );
+    printf ( "\t Change hair mode between curly and normal by pressing 'h'\n" );
 	printf ( "\t Quit by pressing the 'q' key\n" );
 
 	dsim = 0;

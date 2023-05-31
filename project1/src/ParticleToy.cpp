@@ -11,6 +11,7 @@
 #include "ConstraintSolver.h"
 #include "Constraint.h" 
 #include "AngularSpringForce.h"
+#include "Wall.h"
 #include <vector>
 #include <stdlib.h>
 #include <stdio.h>
@@ -60,6 +61,7 @@ static std::vector<RodConstraintSqrt *> rodConstraintsSqrt;
 static std::vector<Constraint *> constraints;
 static ConstraintSolver * constraintSolver;
 static std::vector<Particle *> endpoints;
+static std::vector<Wall *> walls;
 
 static int runInstance = 1;
 static int integrationScheme = 0;
@@ -86,6 +88,8 @@ static void free_data ( void )
 	circularWireConstraints.clear();
 	rodConstraints.clear();
 	endpoints.clear();
+	walls.clear();
+	constraints.clear();
     if (gravityForce) {
 		delete gravityForce;
 		gravityForce = NULL;
@@ -94,8 +98,6 @@ static void free_data ( void )
 		delete windForce;
 		windForce = NULL;
 	}
-
-	constraints.clear();
 }
 
 static void clear_data ( void )
@@ -138,7 +140,7 @@ static void init_system(void)
 		rodConstraintsSqrt.push_back(rodConstraintSqrt);
 		constraints.push_back(rodConstraintSqrt);
 	}
-	else if (runInstance == 2) {
+	else if (runInstance == 3) {
 		const float ks = 500.0;
 		const float kd = 4;
 		const int clothSize = 10;
@@ -163,7 +165,7 @@ static void init_system(void)
 				}
 			}
 		}
-	} else if (runInstance == 3) {
+	} else if (runInstance == 5) {
 		// hair simulation 
         const int hairs = 20; 
         const float length = 0.5f;  
@@ -222,7 +224,7 @@ static void init_system(void)
  
             endpoints.push_back(pVector[((h+1) * segments) - 1]); 
         } 
-	} else if (runInstance == 4) {
+	} else if (runInstance == 2) {
 		const double dist = 0.2;
 		const Vec2f center1(-0.5, 0.5);
 		const Vec2f center2(0.5, 0.5);
@@ -248,6 +250,33 @@ static void init_system(void)
 		RodConstraint * rodConstraint = new RodConstraint(pVector[2], pVector[3], 1);
 		rodConstraints.push_back(rodConstraint);
 		constraints.push_back(rodConstraint);
+	} else if (runInstance == 4) {
+		const float ks = 500.0;
+		const float kd = 4;
+		const int clothSize = 10;
+		const double dist = 0.1;
+		const Vec2f center(0.0, 0.0);
+
+		for (int i = 0; i < clothSize; i++) {
+			for (int j = 0; j < clothSize; j++) {
+				Vec2f offset((i - (clothSize / 2)) * dist, (j - (clothSize / 2)) * dist);
+				pVector.push_back(new Particle(center + offset));
+			}
+		}
+
+		for (int i = 0; i < clothSize; i++) {
+			for (int j = 0; j < clothSize; j++) {
+				if (i != clothSize - 1) {
+					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 10], dist, ks, kd));
+				}
+
+				if (j != clothSize -1) {
+					springForces.push_back(new SpringForce(pVector[i * clothSize + j], pVector[i * clothSize + j + 1], dist, ks, kd));
+				}
+			}
+		}
+
+		walls.push_back(new Wall(Vec2f(-1, -0.7), Vec2f(1, -0.7), 0.1));
 	}
 
 	if (constraints.size() > 0) {
@@ -485,6 +514,12 @@ static void draw_constraints ( void )
 			constraint->draw();
 		}
 	}
+
+	if (walls.size() > 0) {
+		for (Wall * wall: walls) {
+			wall->drawWall();
+		}
+	}
 }
 
 /*
@@ -515,7 +550,7 @@ static void get_from_UI ()
 		Vec2f position(x, y);
 		if (!activeMouseParticle) {
 
-			if (runInstance == 3) { 
+			if (runInstance == 5) { 
 				activeMouseParticle = true;
 				pVector.push_back(new Particle(position)); 
                 for (Particle * endpoint: endpoints) { 
@@ -557,7 +592,7 @@ static void get_from_UI ()
 		if (activeMouseParticle) { 
 			activeMouseParticle = false; 
 			pVector.pop_back(); 
-			if (runInstance == 3) {
+			if (runInstance == 5) {
 				for (int i = 0; i < endpoints.size(); i++) {
 					springForces.pop_back();
 				}
@@ -629,15 +664,15 @@ static void key_func ( unsigned char key, int x, int y )
         runInstance = 2;
 		particle_draw = true;
 		dsim = false;
-		std::cout << "Loaded cloth scene\n";
+		std::cout << "Loaded rod constraint scene\n";
         init_system();
         break;
     case '3':
         free_data();
         runInstance = 3;
-		particle_draw = false;
+		particle_draw = true;
 		dsim = false;
-		std::cout << "Loaded hair scene\n";
+		std::cout << "Loaded cloth scene\n";
         init_system();
         break;
 	case '4':
@@ -645,7 +680,15 @@ static void key_func ( unsigned char key, int x, int y )
         runInstance = 4;
 		particle_draw = true;
 		dsim = false;
-		std::cout << "Loaded constraint scene\n";
+		std::cout << "Loaded cloth with wall scene\n";
+        init_system();
+        break;
+	case '5':
+		free_data();
+        runInstance = 5;
+		particle_draw = false;
+		dsim = false;
+		std::cout << "Loaded hair scene\n";
         init_system();
         break;
     case 'u':
@@ -758,6 +801,12 @@ static void derivEval() {
 		constraintSolver->calculateConstraintForce();
 	}
 
+	if (walls.size() > 0) {
+		for (Wall * wall: walls) {
+			wall->detectCollisions(pVector);
+		}
+	}
+
 	// Run a step in the simulation 0 = Euler, 1 = Midpoint, 2 = Runge-Kutta, 3 = Implicit Euler
 	if (!(integrationScheme == 3)) {
 		simulation_step( pVector, timeStep, integrationScheme);
@@ -765,7 +814,7 @@ static void derivEval() {
 		solveLinearSystem(timeStep);
 	}
 
-	if (runInstance == 2) {
+	if (runInstance == 3 || runInstance == 4) {
 		pVector[9]->reset();		// Fix top left point
 		pVector[99]->reset();		// Fix top right point
 	}
@@ -821,7 +870,7 @@ static void display_func ( void )
 {
 	pre_display ();
 	
-	if (runInstance == 3) {
+	if (runInstance == 5) {
 		drawHead();
 	}
 

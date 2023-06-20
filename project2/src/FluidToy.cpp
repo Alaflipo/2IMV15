@@ -14,9 +14,13 @@
   =======================================================================
 */
 
+#include "Object.h"
+#include "FixedObject.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <GL/glut.h>
+#include <vector>
 
 /* macros */
 
@@ -25,7 +29,9 @@
 /* external definitions (from solver.c) */
 
 extern void dens_step ( int N, float * x, float * x0, float * u, float * v, float diff, float dt );
-extern void vel_step ( int N, float * u, float * v, float * u0, float * v0, float visc, float dt );
+extern void vel_step ( int N, float * u, float * v, float * u0, float * v0, float * uVort, float * vVort,
+                float visc, float dt, float eps, bool vc );
+extern void add_objects ( std::vector<Object*> obj );
 
 /* global variables */
 
@@ -36,6 +42,12 @@ static int dvel;
 
 static float * u, * v, * u_prev, * v_prev;
 static float * dens, * dens_prev;
+
+static float * uVort, * vVort;
+static float eps;
+static bool vorticity_confinement;
+
+static std::vector<Object *> objects;
 
 static int win_id;
 static int win_x, win_y;
@@ -56,6 +68,8 @@ static void free_data ( void )
 	if ( v ) free ( v );
 	if ( u_prev ) free ( u_prev );
 	if ( v_prev ) free ( v_prev );
+	if ( uVort ) free ( uVort );
+	if ( vVort ) free ( vVort );
 	if ( dens ) free ( dens );
 	if ( dens_prev ) free ( dens_prev );
 }
@@ -65,7 +79,7 @@ static void clear_data ( void )
 	int i, size=(N+2)*(N+2);
 
 	for ( i=0 ; i<size ; i++ ) {
-		u[i] = v[i] = u_prev[i] = v_prev[i] = dens[i] = dens_prev[i] = 0.0f;
+		u[i] = v[i] = u_prev[i] = v_prev[i] = dens[i] = dens_prev[i] = uVort[i] = vVort[i] = 0.0f;
 	}
 }
 
@@ -77,10 +91,12 @@ static int allocate_data ( void )
 	v			= (float *) malloc ( size*sizeof(float) );
 	u_prev		= (float *) malloc ( size*sizeof(float) );
 	v_prev		= (float *) malloc ( size*sizeof(float) );
+	uVort		= (float *) malloc ( size*sizeof(float) );
+	vVort		= (float *) malloc ( size*sizeof(float) );
 	dens		= (float *) malloc ( size*sizeof(float) );	
 	dens_prev	= (float *) malloc ( size*sizeof(float) );
 
-	if ( !u || !v || !u_prev || !v_prev || !dens || !dens_prev ) {
+	if ( !u || !v || !u_prev || !v_prev || !uVort || !vVort || !dens || !dens_prev ) {
 		fprintf ( stderr, "cannot allocate data\n" );
 		return ( 0 );
 	}
@@ -164,6 +180,12 @@ static void draw_density ( void )
 	glEnd ();
 }
 
+static void drawObjects() {
+	for (Object * object: objects) {
+		object->drawObject();
+	}
+}
+
 /*
   ----------------------------------------------------------------------
    relates mouse movements to forces sources
@@ -225,6 +247,11 @@ static void key_func ( unsigned char key, int x, int y )
 		case 'V':
 			dvel = !dvel;
 			break;
+		case 'f':
+		case 'F':
+			vorticity_confinement = !vorticity_confinement;
+			printf ( "Toggled vorticity confinement to %s\n", vorticity_confinement ? "True" : "False");
+			break;
 	}
 }
 
@@ -254,7 +281,7 @@ static void reshape_func ( int width, int height )
 static void idle_func ( void )
 {
 	get_from_UI ( dens_prev, u_prev, v_prev );
-	vel_step ( N, u, v, u_prev, v_prev, visc, dt );
+	vel_step ( N, u, v, u_prev, v_prev, uVort, vVort, visc, dt, eps, vorticity_confinement );
 	dens_step ( N, dens, dens_prev, u, v, diff, dt );
 
 	glutSetWindow ( win_id );
@@ -267,6 +294,8 @@ static void display_func ( void )
 
 		if ( dvel ) draw_velocity ();
 		else		draw_density ();
+
+	drawObjects();
 
 	post_display ();
 }
@@ -332,8 +361,21 @@ int main ( int argc, char ** argv )
 		visc = 0.0f;
 		force = 5.0f;
 		source = 100.0f;
-		fprintf ( stderr, "Using defaults : N=%d dt=%g diff=%g visc=%g force = %g source=%g\n",
-			N, dt, diff, visc, force, source );
+		eps = 10;
+		vorticity_confinement = false;
+
+		const Vec2f center(0.5, 0.5);
+		const double dist = 0.2;
+		std::vector <Vec2f> pointVector;
+		pointVector.push_back(center + Vec2f(-0.1 + dist, -0.1));
+		pointVector.push_back(center + Vec2f(0.1 + dist, -0.1));
+		pointVector.push_back(center + Vec2f(0.0 + dist, 0.1));
+		objects.push_back(new FixedObject(pointVector));
+
+		add_objects(objects);
+
+		fprintf ( stderr, "Using defaults : N=%d dt=%g diff=%g visc=%g force = %g source=%g vorticity confinement=%d\n",
+			N, dt, diff, visc, force, source, vorticity_confinement );
 	} else {
 		N = atoi(argv[1]);
 		dt = atof(argv[2]);
@@ -347,6 +389,7 @@ int main ( int argc, char ** argv )
 	printf ( "\t Add densities with the right mouse button\n" );
 	printf ( "\t Add velocities with the left mouse button and dragging the mouse\n" );
 	printf ( "\t Toggle density/velocity display with the 'v' key\n" );
+	printf ( "\t Toggle vorticity confinement with the 'f' key\n" );
 	printf ( "\t Clear the simulation by pressing the 'c' key\n" );
 	printf ( "\t Quit by pressing the 'q' key\n" );
 

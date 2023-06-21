@@ -16,10 +16,18 @@
 
 #include "Object.h"
 #include "FixedObject.h"
+#include "Particle.h"
+#include "FluidForce.h"
+#include "SpringForce.h"
+#include "GravityForce.h"
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <GL/glut.h>
+#if defined(__CYGWIN__) || defined(WIN32) || __linux__
+    #include <GL/glut.h>
+#else
+    #include <GLUT/glut.h>
+#endif
 #include <vector>
 
 /* macros */
@@ -32,10 +40,12 @@ extern void dens_step ( int N, float * x, float * x0, float * u, float * v, floa
 extern void vel_step ( int N, float * u, float * v, float * u0, float * v0, float * uVort, float * vVort,
                 float visc, float dt, float eps, bool vc );
 extern void add_objects ( std::vector<Object*> obj );
+extern void simulation_step(std::vector<Particle*> pVector, float timeStep, int integrationScheme);
 
 /* global variables */
 
 static int N;
+static int dsim;
 static float dt, diff, visc;
 static float force, source;
 static int dvel;
@@ -48,11 +58,19 @@ static float eps;
 static bool vorticity_confinement;
 
 static std::vector<Object *> objects;
+static std::vector<Particle*> particles;
+static FluidForce * fluid_force;
+static GravityForce * gravityForce;
+static std::vector<SpringForce *> springForces;
 
 static int win_id;
 static int win_x, win_y;
 static int mouse_down[3];
 static int omx, omy, mx, my;
+
+static float timeStep = 0.01;
+static int integrationScheme = 1;
+static int runInstance = 3;
 
 
 /*
@@ -72,6 +90,19 @@ static void free_data ( void )
 	if ( vVort ) free ( vVort );
 	if ( dens ) free ( dens );
 	if ( dens_prev ) free ( dens_prev );
+
+    particles.clear();
+    objects.clear(); 
+
+    springForces.clear();
+    if (gravityForce) {
+		delete gravityForce;
+		gravityForce = NULL;
+	}
+    if (fluid_force) {
+		delete fluid_force;
+		fluid_force = NULL;
+	}
 }
 
 static void clear_data ( void )
@@ -81,6 +112,14 @@ static void clear_data ( void )
 	for ( i=0 ; i<size ; i++ ) {
 		u[i] = v[i] = u_prev[i] = v_prev[i] = dens[i] = dens_prev[i] = uVort[i] = vVort[i] = 0.0f;
 	}
+
+    int ii, particle_amount = particles.size();
+
+	for(ii=0; ii<particle_amount; ii++){
+		particles[ii]->reset();
+	}
+
+ 
 }
 
 static int allocate_data ( void )
@@ -102,6 +141,81 @@ static int allocate_data ( void )
 	}
 
 	return ( 1 );
+}
+
+
+static void init_system(void)
+{
+    if (runInstance == 1) {
+        const Vec2f center(0.5, 0.5);
+		const double dist = 0.2;
+		std::vector <Vec2f> pointVector;
+		pointVector.push_back(center + Vec2f(-0.1 + dist, -0.1));
+		pointVector.push_back(center + Vec2f(0.1 + dist, -0.1));
+		pointVector.push_back(center + Vec2f(0.0 + dist, 0.1));
+		objects.push_back(new FixedObject(pointVector));
+
+		add_objects(objects);
+
+    } else if (runInstance == 2) {
+        const Vec2f center(0.5, 0.5);
+        particles.push_back(new Particle(center));
+
+        fluid_force = new FluidForce(particles); 
+    } else if (runInstance == 3) {
+        const float ks = 500.0;
+		const float kd = 4;
+		const int clothSize = 10;
+		const double dist = 0.05;
+		const Vec2f center(0.5, 0.5);
+
+		for (int i = 0; i < clothSize; i++) {
+			for (int j = 0; j < clothSize; j++) {
+				Vec2f offset((i - (clothSize / 2)) * dist, (j - (clothSize / 2)) * dist);
+				particles.push_back(new Particle(center + offset));
+			}
+		}
+
+		for (int i = 0; i < clothSize; i++) {
+			for (int j = 0; j < clothSize; j++) {
+				if (i != clothSize - 1) {
+					springForces.push_back(new SpringForce(particles[i * clothSize + j], particles[i * clothSize + j + 10], dist, ks, kd));
+				}
+
+				if (j != clothSize -1) {
+					springForces.push_back(new SpringForce(particles[i * clothSize + j], particles[i * clothSize + j + 1], dist, ks, kd));
+				}
+			}
+		}
+        fluid_force = new FluidForce(particles); 
+        gravityForce = new GravityForce(particles); 
+    }
+}
+
+static void derivEval() {
+	// Reset force_acc
+	for (Particle * particle: particles) {
+		particle->clearForce();
+	}
+
+    for (SpringForce * spring_force: springForces) {
+		spring_force->calculateForce(false);
+	}
+	
+	if (gravityForce) {
+		gravityForce->calculateGravityForce(); 
+	}
+
+    // apply_fluid_particle_force();
+    fluid_force->calculateForce(N, dt, dens, u, v, u_prev, v_prev);
+
+    // Run a step in the simulation 0 = Euler, 1 = Midpoint, 2 = Runge-Kutta, 3 = Implicit Euler
+    simulation_step( particles, timeStep, integrationScheme);
+
+    if (runInstance == 3 || runInstance == 4) {
+		particles[9]->reset();		// Fix top left point
+		particles[99]->reset();		// Fix top right point
+	}
 }
 
 
@@ -186,6 +300,32 @@ static void drawObjects() {
 	}
 }
 
+static void draw_particles ( void )
+{
+	int size = particles.size();
+
+	for(int ii=0; ii< size; ii++)
+	{
+		particles[ii]->draw();
+	}
+}
+
+static void draw_forces ( void )
+{
+	if (springForces.size() > 0) {
+		for (SpringForce * springForce: springForces) {
+			springForce->draw();
+		}
+	}
+
+    if (springForces.size() > 0) {
+		for (SpringForce * springForce: springForces) {
+			springForce->draw();
+		}
+	}
+
+}
+
 /*
   ----------------------------------------------------------------------
    relates mouse movements to forces sources
@@ -222,6 +362,15 @@ static void get_from_UI ( float * d, float * u, float * v )
 	return;
 }
 
+static void remap_GUI()
+{
+	int ii, size = particles.size();
+	for(ii=0; ii<size; ii++)
+	{
+		particles[ii]->reset();
+	}
+}
+
 /*
   ----------------------------------------------------------------------
    GLUT callback routines
@@ -243,6 +392,10 @@ static void key_func ( unsigned char key, int x, int y )
 			exit ( 0 );
 			break;
 
+        case ' ':
+            dsim = !dsim;
+            std::cout << (dsim ? "Started animation\n" : "Paused animation\n");
+        break;
 		case 'v':
 		case 'V':
 			dvel = !dvel;
@@ -252,6 +405,20 @@ static void key_func ( unsigned char key, int x, int y )
 			vorticity_confinement = !vorticity_confinement;
 			printf ( "Toggled vorticity confinement to %s\n", vorticity_confinement ? "True" : "False");
 			break;
+        case '1':
+            free_data();
+            runInstance = 1;
+            dsim = false;
+            std::cout << "Loaded 1st scene\n";
+            init_system();
+            break;
+        case '2':
+            free_data();
+            runInstance = 2;
+            dsim = false;
+            std::cout << "Loaded second scene\n";
+            init_system();
+            break;
 	}
 }
 
@@ -284,6 +451,12 @@ static void idle_func ( void )
 	vel_step ( N, u, v, u_prev, v_prev, uVort, vVort, visc, dt, eps, vorticity_confinement );
 	dens_step ( N, dens, dens_prev, u, v, diff, dt );
 
+    if ( dsim ) {
+        derivEval();
+    } else {
+        remap_GUI();
+    }
+
 	glutSetWindow ( win_id );
 	glutPostRedisplay ();
 }
@@ -296,6 +469,8 @@ static void display_func ( void )
 		else		draw_density ();
 
 	drawObjects();
+    draw_particles(); 
+    draw_forces(); 
 
 	post_display ();
 }
@@ -356,23 +531,13 @@ int main ( int argc, char ** argv )
 
 	if ( argc == 1 ) {
 		N = 64;
-		dt = 0.1f;
+		dt = 0.01f;
 		diff = 0.0f;
 		visc = 0.0f;
 		force = 5.0f;
 		source = 100.0f;
 		eps = 10;
 		vorticity_confinement = false;
-
-		const Vec2f center(0.5, 0.5);
-		const double dist = 0.2;
-		std::vector <Vec2f> pointVector;
-		pointVector.push_back(center + Vec2f(-0.1 + dist, -0.1));
-		pointVector.push_back(center + Vec2f(0.1 + dist, -0.1));
-		pointVector.push_back(center + Vec2f(0.0 + dist, 0.1));
-		objects.push_back(new FixedObject(pointVector));
-
-		add_objects(objects);
 
 		fprintf ( stderr, "Using defaults : N=%d dt=%g diff=%g visc=%g force = %g source=%g vorticity confinement=%d\n",
 			N, dt, diff, visc, force, source, vorticity_confinement );
@@ -394,12 +559,15 @@ int main ( int argc, char ** argv )
 	printf ( "\t Quit by pressing the 'q' key\n" );
 
 	dvel = 0;
+    dsim = 0;
 
 	if ( !allocate_data () ) exit ( 1 );
 	clear_data ();
 
-	win_x = 512;
-	win_y = 512;
+    init_system();
+
+	win_x = 1024;
+	win_y = 1024;
 	open_glut_window ();
 
 	glutMainLoop ();

@@ -1,6 +1,10 @@
 #include "FixedObject.h"
 #include <vector>
-#include <GL/glut.h>
+#if defined(__CYGWIN__) || defined(WIN32) || __linux__
+    #include <GL/glut.h>
+#else
+    #include <GLUT/glut.h>
+#endif
 #include <Eigen/Dense>
 #include <gfx/vec2.h>
 

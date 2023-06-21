@@ -1,8 +1,20 @@
 #include "RigidObject.h"
 #include <vector>
-#include <GL/glut.h>
+#if defined(__CYGWIN__) || defined(WIN32) || __linux__
+    #include <GL/glut.h>
+#else
+    #include <GLUT/glut.h>
+#endif
 #include <Eigen/Dense>
 #include <gfx/vec2.h>
+
+static Vector2f VecEigen(Vec2f vec) {
+    return Vector2f(vec[0], vec[1]);
+}
+
+static Vec2f EigenVec(Vector2f vec) {
+    return Vec2f(vec[0], vec[1]);
+}
 
 RigidObject::RigidObject(std::vector<Particle *> initParticles, int n) {
     particles = initParticles;
@@ -49,12 +61,4 @@ void RigidObject::drawObject() {
         glVertex2f(points[i][0], points[i][1]);
     }
     glEnd();
-}
-
-static Vector2f VecEigen(Vec2f vec) {
-    return Vector2f(vec[0], vec[1]);
-}
-
-static Vec2f EigenVec(Vector2f vec) {
-    return Vec2f(vec[0], vec[1]);
 }

@@ -159,7 +159,7 @@ static void init_system(void)
 		pointVector.push_back(center + Vec2f(0.0 + dist, 0.1));
 		objects.push_back(new FixedObject(pointVector));
 
-		add_objects(objects);
+		addObjects(objects);
 
     } else if (runInstance == 2) {
         const Vec2f center(0.5, 0.5);
@@ -457,7 +457,7 @@ static void idle_func ( void )
 
     if ( dsim ) {
         derivEval();
-        rigidSimulationStep()rigidObjects, dt;
+        rigidSimulationStep(rigidObjects, dt);
     } else {
         remap_GUI();
     }

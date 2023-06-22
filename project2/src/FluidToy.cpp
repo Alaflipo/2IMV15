@@ -14,8 +14,10 @@
   =======================================================================
 */
 
+#include "Particle.h"
 #include "Object.h"
 #include "FixedObject.h"
+#include "RigidObject.h"
 #include "Particle.h"
 #include "FluidForce.h"
 #include "SpringForce.h"
@@ -39,7 +41,8 @@
 extern void dens_step ( int N, float * x, float * x0, float * u, float * v, float diff, float dt );
 extern void vel_step ( int N, float * u, float * v, float * u0, float * v0, float * uVort, float * vVort,
                 float visc, float dt, float eps, bool vc );
-extern void add_objects ( std::vector<Object*> obj );
+extern void addObjects ( std::vector<Object*> obj );
+extern void rigidSimulationStep(std::vector<RigidObject*> rigidObjects, float dt);
 extern void simulation_step(std::vector<Particle*> pVector, float timeStep, int integrationScheme);
 
 /* global variables */
@@ -58,6 +61,7 @@ static float eps;
 static bool vorticity_confinement;
 
 static std::vector<Object *> objects;
+static std::vector<RigidObject *> rigidObjects;
 static std::vector<Particle*> particles;
 static FluidForce * fluid_force;
 static GravityForce * gravityForce;
@@ -453,6 +457,7 @@ static void idle_func ( void )
 
     if ( dsim ) {
         derivEval();
+        rigidSimulationStep()rigidObjects, dt;
     } else {
         remap_GUI();
     }
@@ -538,6 +543,26 @@ int main ( int argc, char ** argv )
 		source = 100.0f;
 		eps = 10;
 		vorticity_confinement = false;
+
+		Vec2f center(0.5, 0.5);
+		const double dist = 0.2;
+		std::vector <Vec2f> pointVector;
+		pointVector.push_back(center + Vec2f(-0.1 + dist, -0.1));
+		pointVector.push_back(center + Vec2f(0.1 + dist, -0.1));
+		pointVector.push_back(center + Vec2f(0.0 + dist, 0.1));
+		objects.push_back(new FixedObject(pointVector));
+
+		center = Vec2f(0.2, 0.2);
+		std::vector <Particle *> particles;
+		particles.push_back(new Particle(center + Vec2f(0.1, 0)));
+		particles.push_back(new Particle(center + Vec2f(0.1, 0.1)));
+		particles.push_back(new Particle(center + Vec2f(0, 0.1)));
+		particles.push_back(new Particle(center));
+		RigidObject * rigidObject = new RigidObject(particles, N);
+		objects.push_back(rigidObject);
+		rigidObjects.push_back(rigidObject);
+
+		addObjects(objects);
 
 		fprintf ( stderr, "Using defaults : N=%d dt=%g diff=%g visc=%g force = %g source=%g vorticity confinement=%d\n",
 			N, dt, diff, visc, force, source, vorticity_confinement );

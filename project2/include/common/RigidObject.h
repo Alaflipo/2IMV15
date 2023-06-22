@@ -25,6 +25,7 @@ class RigidObject : public Object {
     private:
         int N;
         double M;
+        Vec2f x0;
         std::vector<Particle *> particles;
 
         // Current state
@@ -36,11 +37,17 @@ class RigidObject : public Object {
         // State derivative
         VectorXf v;
         MatrixXf Romgea;
-        float force;
-        float torque;
+        VectorXf F;
+        float tau;
 
         // Helper
-        Matrix2f I;
+        Matrix2f IBody;
+        Matrix2f IInv;
+        Matrix2f IBodyInv;
+        float omega;
+
+        Vector2f VecEigen(Vec2f vec);
+        Vec2f EigenVec(Vector2f vec);
 };
 
 

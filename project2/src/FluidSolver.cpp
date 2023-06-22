@@ -181,6 +181,6 @@ void vel_step ( int N, float * u, float * v, float * u0, float * v0, float * uVo
 	project ( N, u, v, u0, v0 );
 }
 
-void add_objects ( std::vector<Object*> obj ) {
+void addObjects ( std::vector<Object*> obj ) {
     objects = obj;
 }

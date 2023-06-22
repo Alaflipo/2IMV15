@@ -11,17 +11,33 @@ SpringForce::SpringForce(Particle *p1, Particle * p2, double dist, double ks, do
 
 void SpringForce::draw()
 {
-  glBegin( GL_LINES );
-  glColor3f(0.6, 0.7, 0.8);
-  glVertex2f( m_p1->m_Position[0], m_p1->m_Position[1] );
-  glColor3f(0.6, 0.7, 0.8);
-  glVertex2f( m_p2->m_Position[0], m_p2->m_Position[1] );
-  glEnd();
+  if (rb == NULL) {
+    glBegin( GL_LINES );
+    glColor3f(0.6, 0.7, 0.8);
+    glVertex2f( m_p1->m_Position[0], m_p1->m_Position[1] );
+    glColor3f(0.6, 0.7, 0.8);
+    glVertex2f( m_p2->m_Position[0], m_p2->m_Position[1] );
+    glEnd();
+  } else {
+    glBegin( GL_LINES );
+    glColor3f(0.6, 0.7, 0.8);
+    glVertex2f( m_p1->m_Position[0] + rb->x[0], m_p1->m_Position[1] + rb->x[1]);
+    glColor3f(0.6, 0.7, 0.8);
+    glVertex2f( m_p2->m_Position[0], m_p2->m_Position[1] );
+    glEnd();
+  }
 }
+
 
 void SpringForce::calculateForce(bool implicitEuler)
 {
-  Vec2f l = m_p1->m_Position - m_p2->m_Position;
+  Vec2f l;
+  if (rb == NULL) {
+    l = m_p1->m_Position - m_p2->m_Position;
+  } else {
+    l = Vec2f(m_p1->m_Position[0] + rb->x[0] - m_p2->m_Position[0], m_p1->m_Position[1] + rb->x[1] - m_p2->m_Position[1]);
+  }
+  
   Vec2f i = m_p1->m_Velocity - m_p2->m_Velocity;
   float dist_l = sqrt(l * l);
 

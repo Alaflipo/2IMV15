@@ -23,15 +23,14 @@ class RigidObject : public Object {
         void reset();
         void drawObject() override;
 
+        std::vector<Particle *> particles;
         Vector2f x;
     private:
         int N;
         double M;
         Vector2f x0;
-        std::vector<Particle *> particles;
 
         // Current state
-        
         Matrix2f R;
         Vector2f linearMomentum;
         float angularMomentum;

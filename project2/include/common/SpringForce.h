@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Particle.h"
+#include "RigidObject.h"
 #include <Eigen/Dense>
 using namespace Eigen;
 
@@ -17,6 +18,8 @@ class SpringForce {
 
   double const m_dist;     // rest length
   double const m_ks, m_kd; // spring strength constants
+
+  RigidObject * rb;
 
  private:
 

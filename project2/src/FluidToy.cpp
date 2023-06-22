@@ -59,6 +59,8 @@ static float * dens, * dens_prev;
 static float * uVort, * vVort;
 static float eps;
 static bool vorticity_confinement;
+static bool dragMode;
+static SpringForce * dragSpring = NULL;
 
 static std::vector<Object *> objects;
 static std::vector<RigidObject *> rigidObjects;
@@ -70,6 +72,7 @@ static std::vector<SpringForce *> springForces;
 static int win_id;
 static int win_x, win_y;
 static int mouse_down[3];
+static int mouse_release[3];
 static int omx, omy, mx, my;
 
 static float timeStep = 0.01;
@@ -219,32 +222,6 @@ static void init_system(void)
     }
 }
 
-static void derivEval() {
-	// Reset force_acc
-	for (Particle * particle: particles) {
-		particle->clearForce();
-	}
-
-    for (SpringForce * spring_force: springForces) {
-		spring_force->calculateForce(false);
-	}
-	
-	if (gravityForce) {
-		gravityForce->calculateGravityForce(); 
-	}
-
-    fluid_force->calculateForce(N, dt, dens, u, v, u_prev, v_prev);
-
-    // Run a step in the simulation 0 = Euler, 1 = Midpoint, 2 = Runge-Kutta, 3 = Implicit Euler
-    // simulation_step( particles, timeStep, integrationScheme);
-
-    if (runInstance == 3 || runInstance == 4) {
-		particles[9]->reset();		// Fix top left point
-		particles[99]->reset();		// Fix top right point
-	}
-}
-
-
 /*
   ----------------------------------------------------------------------
    OpenGL specific drawing routines
@@ -366,7 +343,7 @@ static void get_from_UI ( float * d, float * u, float * v )
 		u[i] = v[i] = d[i] = 0.0f;
 	}
 
-	if ( !mouse_down[0] && !mouse_down[2] ) return;
+	if ( !mouse_down[0] && !mouse_down[2] && !mouse_release[0] ) return;
 
 	i = (int)((       mx /(float)win_x)*N+1);
 	j = (int)(((win_y-my)/(float)win_y)*N+1);
@@ -374,8 +351,61 @@ static void get_from_UI ( float * d, float * u, float * v )
 	if ( i<1 || i>N || j<1 || j>N ) return;
 
 	if ( mouse_down[0] ) {
-		u[IX(i,j)] = force * (mx-omx);
-		v[IX(i,j)] = force * (omy-my);
+		if (dragMode && rigidObjects.size() > 0) {
+			float x = (float)  i / N; float y = (float)  j / N;
+
+			if (dragSpring == NULL) {
+				Particle * mouseParticle = new Particle(Vec2f(x, y));
+				mouseParticle->m_Mass = 0;
+
+
+				RigidObject * rb; 
+				float dist = INFINITY;
+				for (RigidObject * rbCheck: rigidObjects) {
+					float rbDist = sqrt(pow(mouseParticle->m_Position[0] - rbCheck->x[0], 2)
+									+ pow(mouseParticle->m_Position[1] - rbCheck->x[1], 2) );
+					if (rbDist < dist) {
+						dist = rbDist;
+						rb = rbCheck;
+					}
+				}
+
+				Particle * particle;
+				dist = INFINITY;
+				for (Particle * rbParticle: rb->particles) {
+					float particleDist = sqrt(pow(mouseParticle->m_Position[0] - (rbParticle->m_Position[0] + rb->x[0]), 2)
+									+ pow(mouseParticle->m_Position[1] - (rbParticle->m_Position[1] + rb->x[1]), 2) );
+				
+					if (particleDist < dist) {
+						dist = particleDist;
+						particle = rbParticle;
+					}
+				}
+				printf("dist: %d", dist);
+				dragSpring = new SpringForce(particle, mouseParticle ,dist, 0.001, 10);
+				dragSpring->rb = rb;
+				springForces.push_back(dragSpring);
+			} else {
+				Particle * mouseParticle = dragSpring->getParticles()[1];
+				mouseParticle->m_Position = Vec2f(x, y);
+			}
+		} else {
+			u[IX(i,j)] = force * (mx-omx);
+			v[IX(i,j)] = force * (omy-my);
+		}
+
+	}
+
+	if (mouse_release[0]) {
+		if (dragSpring != NULL) {
+			springForces.pop_back();
+			dragSpring = NULL;
+			// if (dragSpring) delete dragSpring;
+			
+			// springForces.pop_back();
+		}
+
+		mouse_release[0] = false;
 	}
 
 	if ( mouse_down[2] ) {
@@ -445,6 +475,10 @@ static void key_func ( unsigned char key, int x, int y )
             std::cout << "Loaded second scene\n";
             init_system();
             break;
+		case 'd':
+		case 'D':
+			dragMode = !dragMode;
+			break;
 	}
 }
 
@@ -453,6 +487,7 @@ static void mouse_func ( int button, int state, int x, int y )
 	omx = mx = x;
 	omx = my = y;
 
+	if (mouse_down[button]) mouse_release[button] = state = GLUT_UP;
 	mouse_down[button] = state == GLUT_DOWN;
 }
 
@@ -482,7 +517,9 @@ static void idle_func ( void )
 	
 
     if ( dsim ) {
-		// derivEval();
+		for (SpringForce * spring_force: springForces) {
+			spring_force->calculateForce(false);
+		}
 		fluid_force->calculateForce(N, dt, dens, u, v, u_prev, v_prev);
 		rigidSimulationStep(rigidObjects, dt);
     } else {
@@ -570,6 +607,7 @@ int main ( int argc, char ** argv )
 		source = 100.0f;
 		eps = 10;
 		vorticity_confinement = false;
+		dragMode = false;
 
 		fprintf ( stderr, "Using defaults : N=%d dt=%g diff=%g visc=%g force = %g source=%g vorticity confinement=%d\n",
 			N, dt, diff, visc, force, source, vorticity_confinement );

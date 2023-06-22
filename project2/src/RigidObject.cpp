@@ -20,11 +20,21 @@ RigidObject::RigidObject(std::vector<Particle *> initParticles, int n) {
     particles = initParticles;
     N = n;
 
+    x0 = Vector2f(0,0);
+    M = 0.0;
+    for (Particle * particle : particles) {
+        Vec2f pos = particle->m_Mass * particle->m_Position;
+        x0 += Vector2f(pos[0], pos[1]);
+        M += particle->m_Mass;
+    }
+    x0 = x0 / M;
     for (Particle* particle : particles) {
         particle->m_ConstructPos = particle->m_Position - Vec2f(x0[0], x0[1]);
         particle->m_Position = particle->m_ConstructPos;
     }
+
     reset();
+
     IBody = Matrix2f::Identity();
     for (Particle * particle: particles) {
         Vector2f pos = VecEigen(particle->m_Position);
@@ -52,24 +62,21 @@ void RigidObject::setState(VectorXf state) {
     linearMomentum[0] = state[6]; linearMomentum[1] = state[7];
     angularMomentum = state[8];
 
-    if (v.norm() <= 0.0001) {
-        x = Vector2f((float)((int)(x[0] * N) / N), (float)((int)(x[1] * N) / N));
-    }
-
     for (Particle * particle: particles) {
         Vector2f newPos = R * VecEigen(particle->m_Position);
         particle->m_Position = EigenVec(newPos);
     }
 
     v = linearMomentum / M;
+    printf("new v: (%f, %f)\n", v[0], v[1]);
     IInv = R * IBody.inverse() * R.transpose();
     omega = IInv.norm() * angularMomentum;
 }
 
 VectorXf RigidObject::getState() {
-    VectorXf state;
+    VectorXf state(9);
     state[0] = x[0]; state[1] = x[1];
-    state[2] = R(0, 0); state[3] = R(0, 1); state[4] = R(0, 1); state[5] = R(1, 1);
+    state[2] = R(0, 0); state[3] = R(0, 1); state[4] = R(1, 0); state[5] = R(1, 1);
     state[6] = linearMomentum[0]; state[7] = linearMomentum[1];
     state[8] = angularMomentum;
     return state;
@@ -86,27 +93,29 @@ VectorXf RigidObject::derivEval() {
         tau += pos[0] * force[1] - pos[1] * force[0];
     }
 
-    Matrix2f Rdot, r = Matrix2f::Zero();
+    Matrix2f Rdot = Matrix2f::Zero();
+    Matrix2f r = Matrix2f::Zero();
     r(0, 1) = -std::sin(omega);
     r(1, 0) = std::sin(omega);
     Rdot = R * r;
 
-    VectorXf state;
+    VectorXf state(9);
     state[0] = v[0]; state[1] = v[1];
-    state[2] = Rdot(0, 0); state[2] = Rdot(0, 1); state[2] = Rdot(1, 0); state[2] = Rdot(1, 1);
+    state[2] = Rdot(0, 0); state[3] = Rdot(0, 1); state[4] = Rdot(1, 0); state[5] = Rdot(1, 1);
     state[6] = F[0]; state[7] = F[1];
     state[8] = tau;
     return state;
 }
 
 void RigidObject::clearForce() {
+    F = Vector2f(0, 0);
     for (Particle * particle: particles) {
         particle->clearForce();
     }
 }
 
 void RigidObject::reset() {
-    x = VecEigen(x0);
+    x = x0;
     R = Matrix2f::Identity();
     linearMomentum = Vector2f(0, 0);
     angularMomentum = 0;

@@ -73,8 +73,8 @@ static int mouse_down[3];
 static int omx, omy, mx, my;
 
 static float timeStep = 0.01;
-static int integrationScheme = 1;
-static int runInstance = 3;
+static int integrationScheme = 3;
+static int runInstance = 1;
 
 
 /*
@@ -86,14 +86,14 @@ static int runInstance = 3;
 
 static void free_data ( void )
 {
-	if ( u ) free ( u );
-	if ( v ) free ( v );
-	if ( u_prev ) free ( u_prev );
-	if ( v_prev ) free ( v_prev );
-	if ( uVort ) free ( uVort );
-	if ( vVort ) free ( vVort );
-	if ( dens ) free ( dens );
-	if ( dens_prev ) free ( dens_prev );
+	// if ( u ) free ( u );
+	// if ( v ) free ( v );
+	// if ( u_prev ) free ( u_prev );
+	// if ( v_prev ) free ( v_prev );
+	// if ( uVort ) free ( uVort );
+	// if ( vVort ) free ( vVort );
+	// if ( dens ) free ( dens );
+	// if ( dens_prev ) free ( dens_prev );
 
     particles.clear();
     objects.clear(); 
@@ -123,7 +123,19 @@ static void clear_data ( void )
 		particles[ii]->reset();
 	}
 
- 
+	for (RigidObject * rb: rigidObjects) {
+		rb->reset();
+	}
+}
+
+static void clearForces() {
+	for (Particle * particle: particles) {
+		particle->clearForce();
+	}
+
+	for (RigidObject * rb: rigidObjects) {
+		rb->clearForce();
+	}
 }
 
 static int allocate_data ( void )
@@ -151,7 +163,7 @@ static int allocate_data ( void )
 static void init_system(void)
 {
     if (runInstance == 1) {
-        const Vec2f center(0.5, 0.5);
+        Vec2f center(0.5, 0.5);
 		const double dist = 0.2;
 		std::vector <Vec2f> pointVector;
 		pointVector.push_back(center + Vec2f(-0.1 + dist, -0.1));
@@ -159,7 +171,18 @@ static void init_system(void)
 		pointVector.push_back(center + Vec2f(0.0 + dist, 0.1));
 		objects.push_back(new FixedObject(pointVector));
 
+		center = Vec2f(0.2, 0.2);
+		std::vector <Particle *> particles;
+		particles.push_back(new Particle(center + Vec2f(dist, 0)));
+		particles.push_back(new Particle(center + Vec2f(dist, dist)));
+		particles.push_back(new Particle(center + Vec2f(0, dist)));
+		particles.push_back(new Particle(center));
+		RigidObject * rigidObject = new RigidObject(particles, N);
+		objects.push_back(rigidObject);
+		rigidObjects.push_back(rigidObject);
+
 		addObjects(objects);
+		fluid_force = new FluidForce(particles); 
 
     } else if (runInstance == 2) {
         const Vec2f center(0.5, 0.5);
@@ -210,11 +233,10 @@ static void derivEval() {
 		gravityForce->calculateGravityForce(); 
 	}
 
-    // apply_fluid_particle_force();
     fluid_force->calculateForce(N, dt, dens, u, v, u_prev, v_prev);
 
     // Run a step in the simulation 0 = Euler, 1 = Midpoint, 2 = Runge-Kutta, 3 = Implicit Euler
-    simulation_step( particles, timeStep, integrationScheme);
+    // simulation_step( particles, timeStep, integrationScheme);
 
     if (runInstance == 3 || runInstance == 4) {
 		particles[9]->reset();		// Fix top left point
@@ -451,13 +473,18 @@ static void reshape_func ( int width, int height )
 
 static void idle_func ( void )
 {
+	clearForces();
+
 	get_from_UI ( dens_prev, u_prev, v_prev );
 	vel_step ( N, u, v, u_prev, v_prev, uVort, vVort, visc, dt, eps, vorticity_confinement );
 	dens_step ( N, dens, dens_prev, u, v, diff, dt );
 
+	
+
     if ( dsim ) {
-        derivEval();
-        rigidSimulationStep(rigidObjects, dt);
+		// derivEval();
+		fluid_force->calculateForce(N, dt, dens, u, v, u_prev, v_prev);
+		rigidSimulationStep(rigidObjects, dt);
     } else {
         remap_GUI();
     }
@@ -535,34 +562,14 @@ int main ( int argc, char ** argv )
 	}
 
 	if ( argc == 1 ) {
-		N = 64;
-		dt = 0.01f;
+		N = 128;
+		dt = 0.1f;
 		diff = 0.0f;
 		visc = 0.0f;
-		force = 5.0f;
+		force = 1.0f;
 		source = 100.0f;
 		eps = 10;
 		vorticity_confinement = false;
-
-		Vec2f center(0.5, 0.5);
-		const double dist = 0.2;
-		std::vector <Vec2f> pointVector;
-		pointVector.push_back(center + Vec2f(-0.1 + dist, -0.1));
-		pointVector.push_back(center + Vec2f(0.1 + dist, -0.1));
-		pointVector.push_back(center + Vec2f(0.0 + dist, 0.1));
-		objects.push_back(new FixedObject(pointVector));
-
-		center = Vec2f(0.2, 0.2);
-		std::vector <Particle *> particles;
-		particles.push_back(new Particle(center + Vec2f(0.1, 0)));
-		particles.push_back(new Particle(center + Vec2f(0.1, 0.1)));
-		particles.push_back(new Particle(center + Vec2f(0, 0.1)));
-		particles.push_back(new Particle(center));
-		RigidObject * rigidObject = new RigidObject(particles, N);
-		objects.push_back(rigidObject);
-		rigidObjects.push_back(rigidObject);
-
-		addObjects(objects);
 
 		fprintf ( stderr, "Using defaults : N=%d dt=%g diff=%g visc=%g force = %g source=%g vorticity confinement=%d\n",
 			N, dt, diff, visc, force, source, vorticity_confinement );

@@ -14,6 +14,9 @@
   =======================================================================
 */
 
+
+#define IX(i,j) ((i)+(N+2)*(j))
+
 #include "Particle.h"
 #include "Object.h"
 #include "FixedObject.h"
@@ -43,7 +46,7 @@ extern void vel_step ( int N, float * u, float * v, float * u0, float * v0, floa
                 float visc, float dt, float eps, bool vc );
 extern void addObjects ( std::vector<Object*> obj );
 extern void rigidSimulationStep(std::vector<RigidObject*> rigidObjects, float dt);
-extern void simulation_step(std::vector<Particle*> pVector, float timeStep, int integrationScheme);
+extern void simulationStep(std::vector<Particle*> pVector, float timeStep, int integrationScheme);
 
 /* global variables */
 
@@ -400,9 +403,6 @@ static void get_from_UI ( float * d, float * u, float * v )
 		if (dragSpring != NULL) {
 			springForces.pop_back();
 			dragSpring = NULL;
-			// if (dragSpring) delete dragSpring;
-			
-			// springForces.pop_back();
 		}
 
 		mouse_release[0] = false;
@@ -506,21 +506,35 @@ static void reshape_func ( int width, int height )
 	win_y = height;
 }
 
+static void applySpringForces() {
+	for (SpringForce * spring_force: springForces) {
+		spring_force->calculateForce(false);
+	}
+}
+
 static void idle_func ( void )
 {
 	clearForces();
 
 	get_from_UI ( dens_prev, u_prev, v_prev );
 	vel_step ( N, u, v, u_prev, v_prev, uVort, vVort, visc, dt, eps, vorticity_confinement );
-	dens_step ( N, dens, dens_prev, u, v, diff, dt );
-
-	
+	dens_step ( N, dens, dens_prev, u, v, diff, dt );	
 
     if ( dsim ) {
-		for (SpringForce * spring_force: springForces) {
-			spring_force->calculateForce(false);
-		}
+		applySpringForces();
 		fluid_force->calculateForce(N, dt, dens, u, v, u_prev, v_prev);
+
+		// for (RigidObject * rb: rigidObjects) {
+		// 	for (Particle * particle: rb->particles) {
+		// 	int particleCoords = IX((int)((rb->x[0] + particle->m_Position[0]) * N),
+		// 			(int)((rb->x[1] + particle->m_Position[1]) * N));
+
+        //     u[particleCoords] += rb->v[0] * 50;
+        //     v[particleCoords] += rb->v[1] * 50;
+		// 	}
+		// }
+
+		simulationStep(particles, dt, integrationScheme);
 		rigidSimulationStep(rigidObjects, dt);
     } else {
         remap_GUI();
@@ -599,7 +613,7 @@ int main ( int argc, char ** argv )
 	}
 
 	if ( argc == 1 ) {
-		N = 128;
+		N = 64;
 		dt = 0.1f;
 		diff = 0.0f;
 		visc = 0.0f;

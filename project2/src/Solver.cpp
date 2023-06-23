@@ -36,12 +36,16 @@ void midpointStep(Particle * p, float dt, std::vector<Vec2f> state, std::vector<
 }
 
 void rungeKuttaStep(Particle * p, float dt, std::vector<Vec2f> state, std::vector<Vec2f> derivEval) {
-    Vec2f position = state[0] + ((dt / 2) * derivEval[0]);
-    Vec2f velocity = (state[1] + ((dt / 2) * derivEval[1])) * DAMP;
+    Vec2f position = state[0] + ((dt / 6) * derivEval[0]);
+    Vec2f velocity = (state[1] + ((dt / 6) * derivEval[1])) * DAMP;
     p->set_state(position, velocity);
     derivEval = p->derivEval();
-    position = state[0] + ((dt / 2) * derivEval[0]);
-    velocity = (state[1] + ((dt / 2) * derivEval[1])) * DAMP;
+    position = state[0] + ((dt / 3) * derivEval[0]);
+    velocity = (state[1] + ((dt / 3) * derivEval[1])) * DAMP;
+    p->set_state(position, velocity);
+    derivEval = p->derivEval();
+    position = state[0] + ((dt / 3) * derivEval[0]);
+    velocity = (state[1] + ((dt / 3) * derivEval[1])) * DAMP;
     p->set_state(position, velocity);
     derivEval = p->derivEval();
     position = state[0] + dt * derivEval[0];
@@ -49,7 +53,7 @@ void rungeKuttaStep(Particle * p, float dt, std::vector<Vec2f> state, std::vecto
     p->set_state(position, velocity);
 }
 
-void simulation_step(std::vector<Particle*> pVector, float dt, int scheme) {	
+void simulationStep(std::vector<Particle*> pVector, float dt, int scheme) {	
 	for(int i=0; i<pVector.size(); i++)
 	{
         Particle * particle = pVector[i];

@@ -8,7 +8,7 @@
 
 Particle::Particle(const Vec2f & ConstructPos) :
 	m_ConstructPos(ConstructPos), m_Position(ConstructPos), 
-    m_Velocity(Vec2f(0.0, 0.0)), m_Mass(1.0), m_Force_acc(Vec2f(0.0,0.0))
+    m_Velocity(Vec2f(0.0, 0.0)), m_Mass(1), m_Force_acc(Vec2f(0.0,0.0))
 {
 }
 

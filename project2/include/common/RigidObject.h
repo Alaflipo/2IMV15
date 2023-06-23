@@ -25,6 +25,7 @@ class RigidObject : public Object {
 
         std::vector<Particle *> particles;
         Vector2f x;
+        VectorXf v;
     private:
         int N;
         double M;
@@ -36,7 +37,6 @@ class RigidObject : public Object {
         float angularMomentum;
 
         // State derivative
-        VectorXf v;
         MatrixXf Romgea;
         VectorXf F;
         float tau;

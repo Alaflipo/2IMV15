@@ -68,7 +68,6 @@ void RigidObject::setState(VectorXf state) {
     }
 
     v = linearMomentum / M;
-    printf("new v: (%f, %f)\n", v[0], v[1]);
     IInv = R * IBody.inverse() * R.transpose();
     omega = IInv.norm() * angularMomentum;
 }
@@ -95,8 +94,9 @@ VectorXf RigidObject::derivEval() {
 
     Matrix2f Rdot = Matrix2f::Zero();
     Matrix2f r = Matrix2f::Zero();
-    r(0, 1) = -std::sin(omega);
-    r(1, 0) = std::sin(omega);
+    float rotScale = 0.2;
+    r(0, 1) = -std::sin(omega * rotScale);
+    r(1, 0) = std::sin(omega * rotScale);
     Rdot = R * r;
 
     VectorXf state(9);

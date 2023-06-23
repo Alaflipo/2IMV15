@@ -14,9 +14,6 @@
   =======================================================================
 */
 
-
-#define IX(i,j) ((i)+(N+2)*(j))
-
 #include "Particle.h"
 #include "Object.h"
 #include "FixedObject.h"
@@ -179,10 +176,19 @@ static void init_system(void)
 
 		center = Vec2f(0.2, 0.2);
 		std::vector <Particle *> particles;
-		particles.push_back(new Particle(center + Vec2f(dist, 0)));
-		particles.push_back(new Particle(center + Vec2f(dist, dist)));
-		particles.push_back(new Particle(center + Vec2f(0, dist)));
-		particles.push_back(new Particle(center));
+		Particle * particle;
+		particle = new Particle(center + Vec2f(dist, 0));
+		particle->m_Mass = 100;
+		particles.push_back(particle);
+		particle = new Particle(center + Vec2f(dist, dist));
+		particle->m_Mass = 100;
+		particles.push_back(particle);
+		particle = new Particle(center + Vec2f(0, dist));
+		particle->m_Mass = 100;
+		particles.push_back(particle);
+		particle =new Particle(center);
+		particle->m_Mass = 100;
+		particles.push_back(particle);
 		RigidObject * rigidObject = new RigidObject(particles, N);
 		objects.push_back(rigidObject);
 		rigidObjects.push_back(rigidObject);
@@ -385,7 +391,7 @@ static void get_from_UI ( float * d, float * u, float * v )
 					}
 				}
 				printf("dist: %d", dist);
-				dragSpring = new SpringForce(particle, mouseParticle ,dist, 0.001, 10);
+				dragSpring = new SpringForce(particle, mouseParticle ,dist, 10, 10);
 				dragSpring->rb = rb;
 				springForces.push_back(dragSpring);
 			} else {
@@ -394,7 +400,10 @@ static void get_from_UI ( float * d, float * u, float * v )
 			}
 		} else {
 			u[IX(i,j)] = force * (mx-omx);
+			printf("u[IX(%f, %f)] = force * (%f - %f);\n", i, j , mx, omx);
 			v[IX(i,j)] = force * (omy-my);
+			printf("v[IX(%f, %f)] = force * (%f - %f);\n", i, j , omy, my);
+
 		}
 
 	}
@@ -613,11 +622,11 @@ int main ( int argc, char ** argv )
 	}
 
 	if ( argc == 1 ) {
-		N = 64;
+		N = 128;
 		dt = 0.1f;
 		diff = 0.0f;
 		visc = 0.0f;
-		force = 1.0f;
+		force = 5.0f;
 		source = 100.0f;
 		eps = 10;
 		vorticity_confinement = false;

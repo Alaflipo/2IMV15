@@ -1041,7 +1041,7 @@ int main ( int argc, char ** argv )
 		visc = 0.0f;
 		force = 5.0f;
 		source = 100.0f;
-		eps = 10;
+		eps = 0.01;
 		vorticity_confinement = true;
 		dragMode = false;
 		dvel = true;

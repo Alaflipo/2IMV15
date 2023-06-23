@@ -89,17 +89,9 @@ static int runInstance = 1;
 
 static void free_data ( void )
 {
-	// if ( u ) free ( u );
-	// if ( v ) free ( v );
-	// if ( u_prev ) free ( u_prev );
-	// if ( v_prev ) free ( v_prev );
-	// if ( uVort ) free ( uVort );
-	// if ( vVort ) free ( vVort );
-	// if ( dens ) free ( dens );
-	// if ( dens_prev ) free ( dens_prev );
-
     particles.clear();
     objects.clear(); 
+	rigidObjects.clear();
 
     springForces.clear();
     if (gravityForce) {
@@ -192,419 +184,6 @@ static void init_system(void)
 		RigidObject * rigidObject = new RigidObject(particles, N);
 		objects.push_back(rigidObject);
 		rigidObjects.push_back(rigidObject);
-
-		u[IX(63, 117)] = force * (501 - 93);
-		v[IX(63, 117)] = force * (0 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(63, 117)] = force * (501 - 501);
-		v[IX(63, 117)] = force * (93 - 93);
-		u[IX(62, 117)] = force * (493 - 501);
-		v[IX(62, 117)] = force * (93 - 95);
-		u[IX(62, 117)] = force * (493 - 493);
-		v[IX(62, 117)] = force * (95 - 95);
-		u[IX(61, 116)] = force * (480 - 493);
-		v[IX(61, 116)] = force * (95 - 97);
-		u[IX(61, 116)] = force * (480 - 480);
-		v[IX(61, 116)] = force * (97 - 97);
-		u[IX(59, 116)] = force * (467 - 480);
-		v[IX(59, 116)] = force * (97 - 99);
-		u[IX(59, 116)] = force * (467 - 467);
-		v[IX(59, 116)] = force * (99 - 99);
-		u[IX(58, 116)] = force * (459 - 467);
-		v[IX(58, 116)] = force * (99 - 101);
-		u[IX(58, 116)] = force * (459 - 459);
-		v[IX(58, 116)] = force * (101 - 101);
-		u[IX(57, 116)] = force * (453 - 459);
-		v[IX(57, 116)] = force * (101 - 103);
-		u[IX(57, 116)] = force * (453 - 453);
-		v[IX(57, 116)] = force * (103 - 103);
-		u[IX(57, 115)] = force * (450 - 453);
-		v[IX(57, 115)] = force * (103 - 105);
-		u[IX(57, 115)] = force * (450 - 450);
-		v[IX(57, 115)] = force * (105 - 105);
-		u[IX(56, 115)] = force * (444 - 450);
-		v[IX(56, 115)] = force * (105 - 109);
-		u[IX(56, 115)] = force * (444 - 444);
-		v[IX(56, 115)] = force * (109 - 109);
-		u[IX(55, 114)] = force * (435 - 444);
-		v[IX(55, 114)] = force * (109 - 115);
-		u[IX(55, 114)] = force * (435 - 435);
-		v[IX(55, 114)] = force * (115 - 115);
-		u[IX(55, 114)] = force * (432 - 435);
-		v[IX(55, 114)] = force * (115 - 119);
-		u[IX(55, 114)] = force * (432 - 432);
-		v[IX(55, 114)] = force * (119 - 119);
-		u[IX(54, 113)] = force * (430 - 432);
-		v[IX(54, 113)] = force * (119 - 121);
-		u[IX(54, 113)] = force * (430 - 430);
-		v[IX(54, 113)] = force * (121 - 121);
-		u[IX(54, 113)] = force * (429 - 430);
-		v[IX(54, 113)] = force * (121 - 123);
-		u[IX(54, 113)] = force * (429 - 429);
-		v[IX(54, 113)] = force * (123 - 123);
-		u[IX(54, 112)] = force * (425 - 429);
-		v[IX(54, 112)] = force * (123 - 129);
-		u[IX(54, 112)] = force * (425 - 425);
-		v[IX(54, 112)] = force * (129 - 129);
-		u[IX(53, 110)] = force * (417 - 425);
-		v[IX(53, 110)] = force * (129 - 151);
-		u[IX(53, 110)] = force * (417 - 417);
-		v[IX(53, 110)] = force * (151 - 151);
-		u[IX(52, 107)] = force * (410 - 417);
-		v[IX(52, 107)] = force * (151 - 170);
-		u[IX(52, 107)] = force * (410 - 410);
-		v[IX(52, 107)] = force * (170 - 170);
-		u[IX(51, 106)] = force * (406 - 410);
-		v[IX(51, 106)] = force * (170 - 184);
-		u[IX(51, 106)] = force * (406 - 406);
-		v[IX(51, 106)] = force * (184 - 184);
-		u[IX(51, 106)] = force * (406 - 406);
-		v[IX(51, 106)] = force * (184 - 184);
-		u[IX(51, 103)] = force * (405 - 406);
-		v[IX(51, 103)] = force * (184 - 201);
-		u[IX(51, 101)] = force * (405 - 405);
-		v[IX(51, 101)] = force * (201 - 220);
-		u[IX(51, 101)] = force * (405 - 405);
-		v[IX(51, 101)] = force * (220 - 220);
-		u[IX(51, 101)] = force * (405 - 405);
-		v[IX(51, 101)] = force * (220 - 220);
-		u[IX(51, 99)] = force * (406 - 405);
-		v[IX(51, 99)] = force * (220 - 237);
-		u[IX(51, 99)] = force * (406 - 406);
-		v[IX(51, 99)] = force * (237 - 237);
-		u[IX(51, 97)] = force * (407 - 406);
-		v[IX(51, 97)] = force * (237 - 254);
-		u[IX(51, 97)] = force * (407 - 407);
-		v[IX(51, 97)] = force * (254 - 254);
-		u[IX(52, 94)] = force * (411 - 407);
-		v[IX(52, 94)] = force * (254 - 275);
-		u[IX(52, 94)] = force * (411 - 411);
-		v[IX(52, 94)] = force * (275 - 275);
-		u[IX(52, 92)] = force * (414 - 411);
-		v[IX(52, 92)] = force * (275 - 296);
-		u[IX(52, 92)] = force * (414 - 414);
-		v[IX(52, 92)] = force * (296 - 296);
-		u[IX(53, 90)] = force * (419 - 414);
-		v[IX(53, 90)] = force * (296 - 312);
-		u[IX(53, 90)] = force * (419 - 419);
-		v[IX(53, 90)] = force * (312 - 312);
-		u[IX(54, 88)] = force * (424 - 419);
-		v[IX(54, 88)] = force * (312 - 327);
-		u[IX(54, 88)] = force * (424 - 424);
-		v[IX(54, 88)] = force * (327 - 327);
-		u[IX(54, 86)] = force * (428 - 424);
-		v[IX(54, 86)] = force * (327 - 341);
-		u[IX(54, 86)] = force * (428 - 428);
-		v[IX(54, 86)] = force * (341 - 341);
-		u[IX(54, 86)] = force * (428 - 428);
-		v[IX(54, 86)] = force * (341 - 341);
-		u[IX(55, 84)] = force * (434 - 428);
-		v[IX(55, 84)] = force * (341 - 353);
-		u[IX(55, 83)] = force * (439 - 434);
-		v[IX(55, 83)] = force * (353 - 363);
-		u[IX(55, 83)] = force * (439 - 439);
-		v[IX(55, 83)] = force * (363 - 363);
-		u[IX(55, 83)] = force * (439 - 439);
-		v[IX(55, 83)] = force * (363 - 363);
-		u[IX(56, 82)] = force * (444 - 439);
-		v[IX(56, 82)] = force * (363 - 371);
-		u[IX(57, 81)] = force * (448 - 444);
-		v[IX(57, 81)] = force * (371 - 377);
-		u[IX(57, 81)] = force * (448 - 448);
-		v[IX(57, 81)] = force * (377 - 377);
-		u[IX(57, 81)] = force * (448 - 448);
-		v[IX(57, 81)] = force * (377 - 377);
-		u[IX(57, 81)] = force * (452 - 448);
-		v[IX(57, 81)] = force * (377 - 381);
-		u[IX(57, 81)] = force * (452 - 452);
-		v[IX(57, 81)] = force * (381 - 381);
-		u[IX(58, 80)] = force * (457 - 452);
-		v[IX(58, 80)] = force * (381 - 386);
-		u[IX(58, 80)] = force * (457 - 457);
-		v[IX(58, 80)] = force * (386 - 386);
-		u[IX(58, 80)] = force * (463 - 457);
-		v[IX(58, 80)] = force * (386 - 391);
-		u[IX(60, 79)] = force * (472 - 463);
-		v[IX(60, 79)] = force * (391 - 396);
-		u[IX(61, 79)] = force * (483 - 472);
-		v[IX(61, 79)] = force * (396 - 400);
-		u[IX(61, 79)] = force * (483 - 483);
-		v[IX(61, 79)] = force * (400 - 400);
-		u[IX(63, 78)] = force * (497 - 483);
-		v[IX(63, 78)] = force * (400 - 405);
-		u[IX(64, 78)] = force * (510 - 497);
-		v[IX(64, 78)] = force * (405 - 408);
-		u[IX(64, 78)] = force * (510 - 510);
-		v[IX(64, 78)] = force * (408 - 408);
-		u[IX(67, 77)] = force * (528 - 510);
-		v[IX(67, 77)] = force * (408 - 412);
-		u[IX(69, 77)] = force * (545 - 528);
-		v[IX(69, 77)] = force * (412 - 413);
-		u[IX(72, 77)] = force * (573 - 545);
-		v[IX(72, 77)] = force * (413 - 414);
-		u[IX(75, 77)] = force * (597 - 573);
-		v[IX(75, 77)] = force * (414 - 414);
-		u[IX(75, 77)] = force * (597 - 597);
-		v[IX(75, 77)] = force * (414 - 414);
-		u[IX(78, 77)] = force * (622 - 597);
-		v[IX(78, 77)] = force * (414 - 414);
-		u[IX(82, 77)] = force * (651 - 622);
-		v[IX(82, 77)] = force * (414 - 409);
-		u[IX(82, 77)] = force * (651 - 651);
-		v[IX(82, 77)] = force * (409 - 409);
-		u[IX(86, 78)] = force * (680 - 651);
-		v[IX(86, 78)] = force * (409 - 404);
-		u[IX(86, 78)] = force * (680 - 680);
-		v[IX(86, 78)] = force * (404 - 404);
-		u[IX(89, 79)] = force * (704 - 680);
-		v[IX(89, 79)] = force * (404 - 398);
-		u[IX(92, 80)] = force * (729 - 704);
-		v[IX(92, 80)] = force * (398 - 391);
-		u[IX(92, 80)] = force * (729 - 729);
-		v[IX(92, 80)] = force * (391 - 391);
-		u[IX(94, 81)] = force * (746 - 729);
-		v[IX(94, 81)] = force * (391 - 384);
-		u[IX(95, 81)] = force * (757 - 746);
-		v[IX(95, 81)] = force * (384 - 378);
-		u[IX(97, 82)] = force * (768 - 757);
-		v[IX(97, 82)] = force * (378 - 374);
-		u[IX(97, 82)] = force * (768 - 768);
-		v[IX(97, 82)] = force * (374 - 374);
-		u[IX(98, 82)] = force * (776 - 768);
-		v[IX(98, 82)] = force * (374 - 369);
-		u[IX(98, 82)] = force * (776 - 776);
-		v[IX(98, 82)] = force * (369 - 369);
-		u[IX(98, 83)] = force * (782 - 776);
-		v[IX(98, 83)] = force * (369 - 364);
-		u[IX(98, 83)] = force * (782 - 782);
-		v[IX(98, 83)] = force * (364 - 364);
-		u[IX(99, 84)] = force * (787 - 782);
-		v[IX(99, 84)] = force * (364 - 359);
-		u[IX(99, 84)] = force * (787 - 787);
-		v[IX(99, 84)] = force * (359 - 359);
-		u[IX(99, 84)] = force * (791 - 787);
-		v[IX(99, 84)] = force * (359 - 354);
-		u[IX(99, 84)] = force * (791 - 791);
-		v[IX(99, 84)] = force * (354 - 354);
-		u[IX(99, 84)] = force * (791 - 791);
-		v[IX(99, 84)] = force * (354 - 354);
-		u[IX(100, 85)] = force * (795 - 791);
-		v[IX(100, 85)] = force * (354 - 347);
-		u[IX(100, 86)] = force * (799 - 795);
-		v[IX(100, 86)] = force * (347 - 338);
-		u[IX(100, 86)] = force * (799 - 799);
-		v[IX(100, 86)] = force * (338 - 338);
-		u[IX(101, 88)] = force * (802 - 799);
-		v[IX(101, 88)] = force * (338 - 327);
-		u[IX(101, 88)] = force * (802 - 802);
-		v[IX(101, 88)] = force * (327 - 327);
-		u[IX(101, 89)] = force * (805 - 802);
-		v[IX(101, 89)] = force * (327 - 314);
-		u[IX(101, 89)] = force * (805 - 805);
-		v[IX(101, 89)] = force * (314 - 314);
-		u[IX(101, 91)] = force * (805 - 805);
-		v[IX(101, 91)] = force * (314 - 298);
-		u[IX(101, 91)] = force * (805 - 805);
-		v[IX(101, 91)] = force * (298 - 298);
-		u[IX(101, 94)] = force * (803 - 805);
-		v[IX(101, 94)] = force * (298 - 280);
-		u[IX(101, 94)] = force * (803 - 803);
-		v[IX(101, 94)] = force * (280 - 280);
-		u[IX(100, 97)] = force * (795 - 803);
-		v[IX(100, 97)] = force * (280 - 255);
-		u[IX(100, 97)] = force * (795 - 795);
-		v[IX(100, 97)] = force * (255 - 255);
-		u[IX(99, 100)] = force * (785 - 795);
-		v[IX(99, 100)] = force * (255 - 225);
-		u[IX(99, 100)] = force * (785 - 785);
-		v[IX(99, 100)] = force * (225 - 225);
-		u[IX(97, 103)] = force * (773 - 785);
-		v[IX(97, 103)] = force * (225 - 201);
-		u[IX(97, 103)] = force * (773 - 773);
-		v[IX(97, 103)] = force * (201 - 201);
-		u[IX(95, 106)] = force * (759 - 773);
-		v[IX(95, 106)] = force * (201 - 179);
-		u[IX(95, 106)] = force * (759 - 759);
-		v[IX(95, 106)] = force * (179 - 179);
-		u[IX(94, 108)] = force * (747 - 759);
-		v[IX(94, 108)] = force * (179 - 161);
-		u[IX(94, 108)] = force * (747 - 747);
-		v[IX(94, 108)] = force * (161 - 161);
-		u[IX(93, 110)] = force * (739 - 747);
-		v[IX(93, 110)] = force * (161 - 149);
-		u[IX(92, 111)] = force * (731 - 739);
-		v[IX(92, 111)] = force * (149 - 139);
-		u[IX(92, 111)] = force * (731 - 731);
-		v[IX(92, 111)] = force * (139 - 139);
-		u[IX(92, 111)] = force * (731 - 731);
-		v[IX(92, 111)] = force * (139 - 139);
-		u[IX(91, 112)] = force * (723 - 731);
-		v[IX(91, 112)] = force * (139 - 131);
-		u[IX(91, 112)] = force * (723 - 723);
-		v[IX(91, 112)] = force * (131 - 131);
-		u[IX(89, 113)] = force * (711 - 723);
-		v[IX(89, 113)] = force * (131 - 121);
-		u[IX(89, 113)] = force * (711 - 711);
-		v[IX(89, 113)] = force * (121 - 121);
-		u[IX(88, 114)] = force * (698 - 711);
-		v[IX(88, 114)] = force * (121 - 113);
-		u[IX(88, 114)] = force * (698 - 698);
-		v[IX(88, 114)] = force * (113 - 113);
-		u[IX(86, 116)] = force * (684 - 698);
-		v[IX(86, 116)] = force * (113 - 104);
-		u[IX(86, 116)] = force * (684 - 684);
-		v[IX(86, 116)] = force * (104 - 104);
-		u[IX(84, 117)] = force * (669 - 684);
-		v[IX(84, 117)] = force * (104 - 96);
-		u[IX(84, 117)] = force * (669 - 669);
-		v[IX(84, 117)] = force * (96 - 96);
-		u[IX(84, 117)] = force * (669 - 669);
-		v[IX(84, 117)] = force * (96 - 96);
-		u[IX(82, 117)] = force * (651 - 669);
-		v[IX(82, 117)] = force * (96 - 90);
-		u[IX(80, 118)] = force * (634 - 651);
-		v[IX(80, 118)] = force * (90 - 83);
-		u[IX(80, 118)] = force * (634 - 634);
-		v[IX(80, 118)] = force * (83 - 83);
-		u[IX(80, 118)] = force * (634 - 634);
-		v[IX(80, 118)] = force * (83 - 83);
-		u[IX(77, 119)] = force * (615 - 634);
-		v[IX(77, 119)] = force * (83 - 78);
-		u[IX(75, 119)] = force * (599 - 615);
-		v[IX(75, 119)] = force * (78 - 74);
-		u[IX(75, 119)] = force * (599 - 599);
-		v[IX(75, 119)] = force * (74 - 74);
-		u[IX(75, 119)] = force * (599 - 599);
-		v[IX(75, 119)] = force * (74 - 74);
-		u[IX(73, 120)] = force * (583 - 599);
-		v[IX(73, 120)] = force * (74 - 70);
-		u[IX(71, 120)] = force * (564 - 583);
-		v[IX(71, 120)] = force * (70 - 65);
-		u[IX(71, 120)] = force * (564 - 564);
-		v[IX(71, 120)] = force * (65 - 65);
-		u[IX(69, 121)] = force * (551 - 564);
-		v[IX(69, 121)] = force * (65 - 63);
-		u[IX(68, 121)] = force * (537 - 551);
-		v[IX(68, 121)] = force * (63 - 58);
-		u[IX(66, 122)] = force * (526 - 537);
-		v[IX(66, 122)] = force * (58 - 55);
-		u[IX(66, 122)] = force * (526 - 526);
-		v[IX(66, 122)] = force * (55 - 55);
-		u[IX(65, 122)] = force * (517 - 526);
-		v[IX(65, 122)] = force * (55 - 53);
-		u[IX(65, 122)] = force * (512 - 517);
-		v[IX(65, 122)] = force * (53 - 52);
-		u[IX(64, 122)] = force * (509 - 512);
-		v[IX(64, 122)] = force * (52 - 51);
-		u[IX(64, 122)] = force * (505 - 509);
-		v[IX(64, 122)] = force * (51 - 51);
-		u[IX(64, 122)] = force * (505 - 505);
-		v[IX(64, 122)] = force * (51 - 51);
-		u[IX(64, 122)] = force * (505 - 505);
-		v[IX(64, 122)] = force * (51 - 51);
-		u[IX(63, 122)] = force * (500 - 505);
-		v[IX(63, 122)] = force * (51 - 51);
-		u[IX(63, 122)] = force * (498 - 500);
-		v[IX(63, 122)] = force * (51 - 51);
-		u[IX(63, 122)] = force * (496 - 498);
-		v[IX(63, 122)] = force * (51 - 52);
-		u[IX(63, 122)] = force * (496 - 496);
-		v[IX(63, 122)] = force * (52 - 52);
-		u[IX(62, 122)] = force * (493 - 496);
-		v[IX(62, 122)] = force * (52 - 54);
-		u[IX(62, 122)] = force * (493 - 493);
-		v[IX(62, 122)] = force * (54 - 54);
-		u[IX(62, 122)] = force * (491 - 493);
-		v[IX(62, 122)] = force * (54 - 55);
-		u[IX(62, 122)] = force * (491 - 491);
-		v[IX(62, 122)] = force * (55 - 55);
-		u[IX(62, 121)] = force * (489 - 491);
-		v[IX(62, 121)] = force * (55 - 57);
-		u[IX(62, 121)] = force * (488 - 489);
-		v[IX(62, 121)] = force * (57 - 58);
-		u[IX(62, 121)] = force * (488 - 488);
-		v[IX(62, 121)] = force * (58 - 58);
-		u[IX(61, 121)] = force * (487 - 488);
-		v[IX(61, 121)] = force * (58 - 58);
-		u[IX(61, 121)] = force * (487 - 487);
-		v[IX(61, 121)] = force * (58 - 58);
 
 		addObjects(objects);
 		fluid_force = new FluidForce(particles); 
@@ -803,7 +382,6 @@ static void get_from_UI ( float * d, float * u, float * v )
 						particle = rbParticle;
 					}
 				}
-				printf("dist: %d", dist);
 				dragSpring = new SpringForce(particle, mouseParticle ,dist, 10, 10);
 				dragSpring->rb = rb;
 				springForces.push_back(dragSpring);
@@ -813,10 +391,7 @@ static void get_from_UI ( float * d, float * u, float * v )
 			}
 		} else {
 			u[IX(i,j)] = force * (mx-omx);
-			printf("u[IX(%d, %d)] = force * (%d - %d);\n", i, j , mx, omx);
 			v[IX(i,j)] = force * (omy-my);
-			printf("v[IX(%d, %d)] = force * (%d - %d);\n", i, j , omy, my);
-
 		}
 
 	}
@@ -862,8 +437,8 @@ static void key_func ( unsigned char key, int x, int y )
 		case 'c':
 		case 'C':
 			clear_data ();
+			printf ( "Reset animation to initial state\n");
 			break;
-
 		case 'q':
 		case 'Q':
 			free_data ();
@@ -877,29 +452,44 @@ static void key_func ( unsigned char key, int x, int y )
 		case 'v':
 		case 'V':
 			dvel = !dvel;
+			printf ( "Toggled display to %s\n", dvel ? "Velocity display" : "Density display");
 			break;
 		case 'f':
 		case 'F':
 			vorticity_confinement = !vorticity_confinement;
-			printf ( "Toggled vorticity confinement to %s\n", vorticity_confinement ? "True" : "False");
+			printf ( "Toggled vorticity confinement to %s\n", vorticity_confinement ? "True" : "False\n");
 			break;
         case '1':
             free_data();
+			integrationScheme = 3;
+			dt = 0.1f;
             runInstance = 1;
             dsim = false;
-            std::cout << "Loaded 1st scene\n";
+            std::cout << "Loaded scene 1\n";
             init_system();
             break;
         case '2':
             free_data();
+			integrationScheme = 3;
+			dt = 0.1f;
             runInstance = 2;
             dsim = false;
-            std::cout << "Loaded second scene\n";
+            std::cout << "Loaded scene 2\n";
+            init_system();
+            break;
+		case '3':
+            free_data();
+            integrationScheme = 1;
+			dt = 0.01f;
+			runInstance = 3;
+            dsim = false;
+            std::cout << "Loaded scene 3\n";
             init_system();
             break;
 		case 'd':
 		case 'D':
 			dragMode = !dragMode;
+			printf ( "Toggled drag mode to %s\n", dragMode ? "True" : "False, use left mouse button to move rigid bodies\n");
 			break;
 	}
 }
@@ -945,17 +535,6 @@ static void idle_func ( void )
     if ( dsim ) {
 		applySpringForces();
 		fluid_force->calculateForce(N, dt, dens, u, v, u_prev, v_prev);
-
-		// for (RigidObject * rb: rigidObjects) {
-		// 	for (Particle * particle: rb->particles) {
-		// 	int particleCoords = IX((int)((rb->x[0] + particle->m_Position[0]) * N),
-		// 			(int)((rb->x[1] + particle->m_Position[1]) * N));
-
-        //     u[particleCoords] += rb->v[0] * 50;
-        //     v[particleCoords] += rb->v[1] * 50;
-		// 	}
-		// }
-
 		simulationStep(particles, dt, integrationScheme);
 		rigidSimulationStep(rigidObjects, dt);
     } else {
@@ -1042,9 +621,9 @@ int main ( int argc, char ** argv )
 		force = 5.0f;
 		source = 100.0f;
 		eps = 0.01;
-		vorticity_confinement = true;
+		vorticity_confinement = false;
 		dragMode = false;
-		dvel = true;
+		dvel = false;
 		dsim = false;
 
 		fprintf ( stderr, "Using defaults : N=%d dt=%g diff=%g visc=%g force = %g source=%g vorticity confinement=%d\n",
@@ -1059,15 +638,15 @@ int main ( int argc, char ** argv )
 	}
 
 	printf ( "\n\nHow to use this demo:\n\n" );
+	printf ( "\t Start the simulation of objects by pressing the 'space bar' key\n" );
 	printf ( "\t Add densities with the right mouse button\n" );
 	printf ( "\t Add velocities with the left mouse button and dragging the mouse\n" );
 	printf ( "\t Toggle density/velocity display with the 'v' key\n" );
 	printf ( "\t Toggle vorticity confinement with the 'f' key\n" );
+	printf ( "\t Switch between scenes using the '1', '2' or '3' key\n" );
+	printf ( "\t Toggle drag mode with the 'd' key in order to drag rigid bodies\n" );
 	printf ( "\t Clear the simulation by pressing the 'c' key\n" );
 	printf ( "\t Quit by pressing the 'q' key\n" );
-
-	// dvel = 0;
-    // dsim = 0;
 
 	if ( !allocate_data () ) exit ( 1 );
 	clear_data ();

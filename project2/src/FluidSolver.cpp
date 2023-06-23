@@ -1,4 +1,5 @@
 #include "Object.h"
+#include "RigidObject.h"
 #include <gfx/vec2.h>
 #include "vector"
 

@@ -62,12 +62,6 @@ void RigidObject::setState(VectorXf state) {
     linearMomentum[0] = state[6]; linearMomentum[1] = state[7];
     angularMomentum = state[8];
 
-    if (v.norm() <= 0.001) {
-        int pixel_x = (int)(x[0] * N);
-        int pixel_y = (int)(x[1] * N);
-        x = Vector2f((float) pixel_x / N, (float) pixel_y / N);
-    }
-
     for (Particle * particle: particles) {
         Vector2f newPos = R * VecEigen(particle->m_ConstructPos);
         particle->m_Position = EigenVec(newPos);
@@ -100,7 +94,7 @@ VectorXf RigidObject::derivEval() {
 
     Matrix2f Rdot = Matrix2f::Zero();
     Matrix2f r = Matrix2f::Zero();
-    float rotScale = 0.2;
+    float rotScale = 10;
     r(0, 1) = -std::sin(omega * rotScale);
     r(1, 0) = std::sin(omega * rotScale);
     Rdot = R * r;
